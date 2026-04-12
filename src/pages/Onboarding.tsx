@@ -41,7 +41,7 @@ const Onboarding = () => {
     return false;
   };
 
-  const saveStep = async (data: Record<string, unknown>) => {
+  const saveStep = async (data: { country?: string; niche?: string; selected_banners?: string[]; store_url?: string; onboarding_completed?: boolean }) => {
     if (!user) return;
     await supabase.from("profiles").update(data).eq("user_id", user.id);
   };
