@@ -7,19 +7,29 @@ import ZyvorazLogo from "@/components/ZyvorazLogo";
 import { COUNTRIES, NICHES, BANNERS } from "@/lib/mock-data";
 import { Check, ChevronLeft, ChevronRight, ExternalLink, Globe, Sparkles, Image, Store, Link2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const STEPS = ["Country", "Niche", "Banners", "Shopify Account", "Connect Store", "Final Setup"];
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { user, profile, refreshProfile } = useAuth();
   const [step, setStep] = useState(0);
-  const [country, setCountry] = useState("");
-  const [niche, setNiche] = useState("");
-  const [selectedBanners, setSelectedBanners] = useState<string[]>([]);
+  const [country, setCountry] = useState(profile?.country || "");
+  const [niche, setNiche] = useState(profile?.niche || "");
+  const [selectedBanners, setSelectedBanners] = useState<string[]>(profile?.selected_banners || []);
   const [bannerPage, setBannerPage] = useState(0);
   const [shopifyConfirmed, setShopifyConfirmed] = useState(false);
-  const [storeUrl, setStoreUrl] = useState("");
+  const [storeUrl, setStoreUrl] = useState(profile?.store_url || "");
   const [finalConfirmed, setFinalConfirmed] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Redirect if already completed
+  if (profile?.onboarding_completed) {
+    navigate("/dashboard", { replace: true });
+    return null;
+  }
 
   const canNext = () => {
     if (step === 0) return !!country;
@@ -31,23 +41,41 @@ const Onboarding = () => {
     return false;
   };
 
-  const next = () => {
-    if (step === 5) {
-      toast.success("Setup complete! Welcome to Zyvoraz 🚀");
-      navigate("/dashboard");
-    } else {
-      setStep(s => s + 1);
+  const saveStep = async (data: Record<string, unknown>) => {
+    if (!user) return;
+    await supabase.from("profiles").update(data).eq("user_id", user.id);
+  };
+
+  const next = async () => {
+    setSaving(true);
+    try {
+      if (step === 0) await saveStep({ country });
+      if (step === 1) await saveStep({ niche });
+      if (step === 2) await saveStep({ selected_banners: selectedBanners });
+      if (step === 4) await saveStep({ store_url: storeUrl });
+
+      if (step === 5) {
+        await saveStep({ onboarding_completed: true });
+        await refreshProfile();
+        toast.success("Setup complete! Welcome to Zyvoraz 🚀");
+        navigate("/dashboard");
+      } else {
+        setStep((s) => s + 1);
+      }
+    } catch {
+      toast.error("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
   const toggleBanner = (id: string) => {
-    setSelectedBanners(prev =>
-      prev.includes(id) ? prev.filter(b => b !== id) : prev.length < 3 ? [...prev, id] : prev
+    setSelectedBanners((prev) =>
+      prev.includes(id) ? prev.filter((b) => b !== id) : prev.length < 3 ? [...prev, id] : prev
     );
   };
 
   const pageBanners = BANNERS.slice(bannerPage * 6, bannerPage * 6 + 6);
-
   const stepIcons = [Globe, Sparkles, Image, Store, Link2, ShieldCheck];
   const StepIcon = stepIcons[step];
 
@@ -90,7 +118,7 @@ const Onboarding = () => {
             {/* Step 0: Country */}
             {step === 0 && (
               <div className="grid grid-cols-2 gap-3">
-                {COUNTRIES.map(c => (
+                {COUNTRIES.map((c) => (
                   <button key={c.code} onClick={() => setCountry(c.code)} className={`glass-card p-4 flex items-center gap-3 text-left transition-all hover:border-primary/50 ${country === c.code ? "border-primary glow-shadow" : ""}`}>
                     <span className="text-2xl">{c.flag}</span>
                     <span className="font-medium">{c.name}</span>
@@ -103,11 +131,11 @@ const Onboarding = () => {
             {/* Step 1: Niche */}
             {step === 1 && (
               <div className="grid grid-cols-2 gap-3">
-                {NICHES.map(n => (
+                {NICHES.map((n) => (
                   <button key={n.id} onClick={() => setNiche(n.id)} className={`glass-card p-5 flex flex-col gap-2 text-left transition-all hover:border-primary/50 ${niche === n.id ? "border-primary glow-shadow" : ""}`}>
                     <div className="flex items-center justify-between">
                       <span className="text-2xl">{n.icon}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${n.trend === "hot" ? "bg-red-500/20 text-red-400" : n.trend === "rising" ? "bg-green-500/20 text-green-400" : "bg-blue-500/20 text-blue-400"}`}>{n.trend}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${n.trend === "hot" ? "bg-destructive/20 text-destructive" : n.trend === "rising" ? "bg-green-500/20 text-green-400" : "bg-blue-500/20 text-blue-400"}`}>{n.trend}</span>
                     </div>
                     <span className="font-medium">{n.name}</span>
                     {niche === n.id && <Check size={16} className="text-primary" />}
@@ -121,7 +149,7 @@ const Onboarding = () => {
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Selected: {selectedBanners.length}/3</p>
                 <div className="grid grid-cols-3 gap-3">
-                  {pageBanners.map(b => (
+                  {pageBanners.map((b) => (
                     <button key={b.id} onClick={() => toggleBanner(b.id)} className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${selectedBanners.includes(b.id) ? "border-primary glow-shadow" : "border-border hover:border-primary/30"}`}>
                       <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${b.colors[0]}, ${b.colors[1]})` }} />
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -136,9 +164,9 @@ const Onboarding = () => {
                   ))}
                 </div>
                 <div className="flex items-center justify-center gap-2">
-                  <Button variant="outline" size="sm" disabled={bannerPage === 0} onClick={() => setBannerPage(p => p - 1)}><ChevronLeft size={16} /></Button>
+                  <Button variant="outline" size="sm" disabled={bannerPage === 0} onClick={() => setBannerPage((p) => p - 1)}><ChevronLeft size={16} /></Button>
                   <span className="text-sm text-muted-foreground">Page {bannerPage + 1}/10</span>
-                  <Button variant="outline" size="sm" disabled={bannerPage === 9} onClick={() => setBannerPage(p => p + 1)}><ChevronRight size={16} /></Button>
+                  <Button variant="outline" size="sm" disabled={bannerPage === 9} onClick={() => setBannerPage((p) => p + 1)}><ChevronRight size={16} /></Button>
                 </div>
               </div>
             )}
@@ -158,7 +186,7 @@ const Onboarding = () => {
                   <ExternalLink size={16} className="mr-2" /> Open Shopify Signup
                 </Button>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" checked={shopifyConfirmed} onChange={e => setShopifyConfirmed(e.target.checked)} className="w-4 h-4 accent-primary" />
+                  <input type="checkbox" checked={shopifyConfirmed} onChange={(e) => setShopifyConfirmed(e.target.checked)} className="w-4 h-4 accent-primary" />
                   <span className="text-sm">I have created my Shopify account</span>
                 </label>
               </div>
@@ -169,7 +197,7 @@ const Onboarding = () => {
               <div className="space-y-4">
                 <div className="glass-card p-6 space-y-3">
                   <p className="text-sm text-muted-foreground">Enter your Shopify store URL:</p>
-                  <Input placeholder="yourstore.myshopify.com" value={storeUrl} onChange={e => setStoreUrl(e.target.value)} className="bg-muted/50" />
+                  <Input placeholder="yourstore.myshopify.com" value={storeUrl} onChange={(e) => setStoreUrl(e.target.value)} className="bg-muted/50" />
                   {storeUrl && !storeUrl.includes(".myshopify.com") && (
                     <p className="text-xs text-destructive">URL must include .myshopify.com</p>
                   )}
@@ -190,7 +218,7 @@ const Onboarding = () => {
                   ))}
                 </div>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" checked={finalConfirmed} onChange={e => setFinalConfirmed(e.target.checked)} className="w-4 h-4 accent-primary" />
+                  <input type="checkbox" checked={finalConfirmed} onChange={(e) => setFinalConfirmed(e.target.checked)} className="w-4 h-4 accent-primary" />
                   <span className="text-sm">I have completed all the steps</span>
                 </label>
               </div>
@@ -198,11 +226,11 @@ const Onboarding = () => {
 
             {/* Navigation */}
             <div className="flex justify-between pt-4">
-              <Button variant="outline" disabled={step === 0} onClick={() => setStep(s => s - 1)}>
+              <Button variant="outline" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
                 <ChevronLeft size={16} className="mr-1" /> Back
               </Button>
-              <Button disabled={!canNext()} onClick={next} className="gradient-bg text-primary-foreground glow-shadow hover:opacity-90">
-                {step === 5 ? "Launch Dashboard 🚀" : "Continue"} <ChevronRight size={16} className="ml-1" />
+              <Button disabled={!canNext() || saving} onClick={next} className="gradient-bg text-primary-foreground glow-shadow hover:opacity-90">
+                {saving ? "Saving..." : step === 5 ? "Launch Dashboard 🚀" : "Continue"} <ChevronRight size={16} className="ml-1" />
               </Button>
             </div>
           </motion.div>
