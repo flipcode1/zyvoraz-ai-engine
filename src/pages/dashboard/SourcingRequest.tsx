@@ -72,8 +72,8 @@ const SourcingRequest = () => {
       </div>
 
       {submitted && (
-        <div className="glass-card p-6 border-green-500/30 max-w-2xl">
-          <p className="text-green-400 font-medium">✅ Your sourcing request has been submitted. Our team will get back to you within 24-48 hours.</p>
+      <div className="glass-card p-6 border-primary/30 max-w-2xl">
+        <p className="text-primary font-medium">✅ Your sourcing request has been submitted. Our team will get back to you within 24-48 hours.</p>
         </div>
       )}
     </div>
