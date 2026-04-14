@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ZyvorazLogo from "@/components/ZyvorazLogo";
-import { COUNTRIES, NICHES, BANNERS } from "@/lib/mock-data";
+import { COUNTRIES, NICHES, getBannersForNiche } from "@/lib/mock-data";
 import { Check, ChevronLeft, ChevronRight, ExternalLink, Globe, Sparkles, Image, Store, Link2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +36,7 @@ const Onboarding = () => {
     if (step === 1) return !!niche;
     if (step === 2) return selectedBanners.length === 3;
     if (step === 3) return shopifyConfirmed;
-    if (step === 4) return storeUrl.includes(".myshopify.com");
+    if (step === 4) return storeUrl.toLowerCase().includes("shopify.com") && storeUrl.length > 12;
     if (step === 5) return finalConfirmed;
     return false;
   };
@@ -75,7 +75,8 @@ const Onboarding = () => {
     );
   };
 
-  const pageBanners = BANNERS.slice(bannerPage * 6, bannerPage * 6 + 6);
+  const nicheBanners = getBannersForNiche(niche || "tech");
+  const pageBanners = nicheBanners.slice(bannerPage * 6, bannerPage * 6 + 6);
   const stepIcons = [Globe, Sparkles, Image, Store, Link2, ShieldCheck];
   const StepIcon = stepIcons[step];
 
@@ -151,9 +152,10 @@ const Onboarding = () => {
                 <div className="grid grid-cols-3 gap-3">
                   {pageBanners.map((b) => (
                     <button key={b.id} onClick={() => toggleBanner(b.id)} className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${selectedBanners.includes(b.id) ? "border-primary glow-shadow" : "border-border hover:border-primary/30"}`}>
-                      <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${b.colors[0]}, ${b.colors[1]})` }} />
+                      <img src={b.image} alt={b.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                      <div className="absolute inset-0 bg-black/30" />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary-foreground/80 bg-background/20 px-2 py-1 rounded backdrop-blur-sm">{b.category}</span>
+                        <span className="text-xs font-medium text-white bg-black/40 px-2 py-1 rounded backdrop-blur-sm">{b.category}</span>
                       </div>
                       {selectedBanners.includes(b.id) && (
                         <div className="absolute top-2 right-2 w-6 h-6 rounded-full gradient-bg flex items-center justify-center">
@@ -197,9 +199,12 @@ const Onboarding = () => {
               <div className="space-y-4">
                 <div className="glass-card p-6 space-y-3">
                   <p className="text-sm text-muted-foreground">Enter your Shopify store URL:</p>
-                  <Input placeholder="yourstore.myshopify.com" value={storeUrl} onChange={(e) => setStoreUrl(e.target.value)} className="bg-muted/50" />
-                  {storeUrl && !storeUrl.includes(".myshopify.com") && (
-                    <p className="text-xs text-destructive">URL must include .myshopify.com</p>
+                  <Input placeholder="yourstore.myshopify.com or admin.shopify.com/store/xxx" value={storeUrl} onChange={(e) => setStoreUrl(e.target.value)} className="bg-muted/50" />
+                  {storeUrl && !storeUrl.toLowerCase().includes("shopify.com") && (
+                    <p className="text-xs text-destructive">URL must contain shopify.com</p>
+                  )}
+                  {storeUrl && storeUrl.toLowerCase().includes("shopify.com") && (
+                    <p className="text-xs text-green-400">✓ Valid Shopify URL</p>
                   )}
                 </div>
               </div>
