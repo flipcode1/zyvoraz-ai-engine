@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 type SubTab = "champions" | "ads" | "trending";
 
-// ─── Empty State ───────────────────────────────────────────────────────────────
+const TREND_ORDER: Record<string, number> = { hot: 3, rising: 2, stable: 1 };
+
 const EmptyState = ({ message }: { message: string }) => (
   <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
     <PackageSearch size={40} className="text-muted-foreground/40" />
@@ -15,23 +16,9 @@ const EmptyState = ({ message }: { message: string }) => (
   </div>
 );
 
-// ─── Champions Tab ─────────────────────────────────────────────────────────────
-const ChampionsTab = ({
-  nicheFilter,
-  countryFilter,
-  onSelect,
-}: {
-  nicheFilter: string;
-  countryFilter: string;
-  onSelect: (id: string) => void;
-}) => {
-  const filtered = CHAMPION_PRODUCTS.filter((p) => {
-    const matchNiche = nicheFilter ? p.niche === nicheFilter : true;
-    return matchNiche;
-  });
-
-  if (filtered.length === 0) return <EmptyState message="No products found for the selected filters." />;
-
+const ChampionsTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect: (id: string) => void }) => {
+  const filtered = CHAMPION_PRODUCTS.filter((p) => (nicheFilter ? p.niche === nicheFilter : true));
+  if (filtered.length === 0) return <EmptyState message="No products found for the selected niche." />;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {filtered.map((p) => (
@@ -41,25 +28,12 @@ const ChampionsTab = ({
   );
 };
 
-// ─── Trending Tab ──────────────────────────────────────────────────────────────
-const TrendingTab = ({
-  nicheFilter,
-  countryFilter,
-  onSelect,
-}: {
-  nicheFilter: string;
-  countryFilter: string;
-  onSelect: (id: string) => void;
-}) => {
-  const TRENDING_PRODUCTS = [...CHAMPION_PRODUCTS].sort((a, b) => (b.trendLevel === "hot" ? 1 : 0) - (a.trendLevel === "hot" ? 1 : 0)).slice(0, 12);
-
-  const filtered = TRENDING_PRODUCTS.filter((p) => {
-    const matchNiche = nicheFilter ? p.niche === nicheFilter : true;
-    return matchNiche;
-  });
-
-  if (filtered.length === 0) return <EmptyState message="No trending products found for the selected filters." />;
-
+const TrendingTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect: (id: string) => void }) => {
+  const trending = [...CHAMPION_PRODUCTS].sort(
+    (a, b) => (TREND_ORDER[b.trendLevel] ?? 0) - (TREND_ORDER[a.trendLevel] ?? 0),
+  );
+  const filtered = trending.filter((p) => (nicheFilter ? p.niche === nicheFilter : true));
+  if (filtered.length === 0) return <EmptyState message="No trending products found for the selected niche." />;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {filtered.map((p) => (
@@ -69,10 +43,8 @@ const TrendingTab = ({
   );
 };
 
-// ─── Ads Tab ───────────────────────────────────────────────────────────────────
 const AdsTab = () => {
   if (TRENDING_ADS.length === 0) return <EmptyState message="No ads available right now." />;
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {TRENDING_ADS.map((ad) => (
@@ -89,22 +61,19 @@ const AdsTab = () => {
           </div>
           <h3 className="font-medium text-sm leading-snug">{ad.product}</h3>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-muted rounded px-2 py-1.5">
-              <span className="text-muted-foreground block text-[10px] uppercase tracking-wide mb-0.5">Views</span>
-              <span className="font-medium">{ad.views}</span>
-            </div>
-            <div className="bg-muted rounded px-2 py-1.5">
-              <span className="text-muted-foreground block text-[10px] uppercase tracking-wide mb-0.5">Likes</span>
-              <span className="font-medium">{ad.likes}</span>
-            </div>
-            <div className="bg-muted rounded px-2 py-1.5">
-              <span className="text-muted-foreground block text-[10px] uppercase tracking-wide mb-0.5">Comments</span>
-              <span className="font-medium">{ad.comments}</span>
-            </div>
-            <div className="bg-muted rounded px-2 py-1.5">
-              <span className="text-muted-foreground block text-[10px] uppercase tracking-wide mb-0.5">Duration</span>
-              <span className="font-medium">{ad.duration}</span>
-            </div>
+            {[
+              { label: "Views", value: ad.views },
+              { label: "Likes", value: ad.likes },
+              { label: "Comments", value: ad.comments },
+              { label: "Duration", value: ad.duration },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-muted rounded px-2 py-1.5">
+                <span className="text-muted-foreground block text-[10px] uppercase tracking-wide mb-0.5">
+                  {stat.label}
+                </span>
+                <span className="font-medium">{stat.value}</span>
+              </div>
+            ))}
           </div>
         </div>
       ))}
@@ -112,7 +81,6 @@ const AdsTab = () => {
   );
 };
 
-// ─── Main Component ────────────────────────────────────────────────────────────
 const MarketplaceSection = () => {
   const [subTab, setSubTab] = useState<SubTab>("champions");
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
@@ -131,16 +99,15 @@ const MarketplaceSection = () => {
   }
 
   const showFilters = subTab === "champions" || subTab === "trending";
+  const hasActiveFilter = nicheFilter || countryFilter;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="font-display text-3xl font-bold">Marketplace</h1>
         <p className="text-muted-foreground">Discover winning products powered by AI</p>
       </div>
 
-      {/* Sub Tabs */}
       <div className="flex gap-2 flex-wrap">
         {(
           [
@@ -164,11 +131,9 @@ const MarketplaceSection = () => {
         ))}
       </div>
 
-      {/* Filters */}
       {showFilters && (
         <div className="flex gap-3 items-center flex-wrap">
           <Filter size={14} className="text-muted-foreground" />
-
           <Select value={nicheFilter} onValueChange={setNicheFilter}>
             <SelectTrigger className="w-40 h-9 text-sm">
               <SelectValue placeholder="All Niches" />
@@ -177,7 +142,7 @@ const MarketplaceSection = () => {
               <SelectItem value="">All Niches</SelectItem>
               {NICHES.map((n) => (
                 <SelectItem key={n.id} value={n.id}>
-                  {n.name}
+                  {n.icon} {n.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -191,13 +156,13 @@ const MarketplaceSection = () => {
               <SelectItem value="">All Countries</SelectItem>
               {COUNTRIES.map((c) => (
                 <SelectItem key={c.code} value={c.code}>
-                  {c.name}
+                  {c.flag} {c.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          {(nicheFilter || countryFilter) && (
+          {hasActiveFilter && (
             <button
               onClick={() => {
                 setNicheFilter("");
@@ -211,13 +176,8 @@ const MarketplaceSection = () => {
         </div>
       )}
 
-      {/* Tab Content */}
-      {subTab === "champions" && (
-        <ChampionsTab nicheFilter={nicheFilter} countryFilter={countryFilter} onSelect={setSelectedProduct} />
-      )}
-      {subTab === "trending" && (
-        <TrendingTab nicheFilter={nicheFilter} countryFilter={countryFilter} onSelect={setSelectedProduct} />
-      )}
+      {subTab === "champions" && <ChampionsTab nicheFilter={nicheFilter} onSelect={setSelectedProduct} />}
+      {subTab === "trending" && <TrendingTab nicheFilter={nicheFilter} onSelect={setSelectedProduct} />}
       {subTab === "ads" && <AdsTab />}
     </div>
   );
