@@ -70,7 +70,8 @@ const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
-                const isActive = location.pathname === item.path || 
+                const isActive =
+                  location.pathname === item.path ||
                   (item.path === "/dashboard/marketplace" && location.pathname === "/dashboard");
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -78,7 +79,11 @@ const AppSidebar = () => {
                       onClick={() => navigate(item.path)}
                       isActive={isActive}
                       tooltip={item.title}
-                      className={isActive ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground"}
+                      className={
+                        isActive
+                          ? "bg-primary/15 text-primary font-medium"
+                          : "text-muted-foreground hover:text-foreground"
+                      }
                     >
                       <item.icon size={18} />
                       {!collapsed && <span>{item.title}</span>}
