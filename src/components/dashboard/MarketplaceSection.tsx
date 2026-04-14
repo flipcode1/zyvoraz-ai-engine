@@ -134,7 +134,7 @@ const MarketplaceSection = () => {
       {showFilters && (
         <div className="flex gap-3 items-center flex-wrap">
           <Filter size={14} className="text-muted-foreground" />
-          <Select value={nicheFilter} onValueChange={setNicheFilter}>
+          <Select value={nicheFilter || "all"} onValueChange={(v) => setNicheFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-40 h-9 text-sm">
               <SelectValue placeholder="All Niches" />
             </SelectTrigger>
@@ -148,7 +148,7 @@ const MarketplaceSection = () => {
             </SelectContent>
           </Select>
 
-          <Select value={countryFilter} onValueChange={setCountryFilter}>
+          <Select value={countryFilter || "all"} onValueChange={(v) => setCountryFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-44 h-9 text-sm">
               <SelectValue placeholder="All Countries" />
             </SelectTrigger>
