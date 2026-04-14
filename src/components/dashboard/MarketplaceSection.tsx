@@ -139,7 +139,7 @@ const MarketplaceSection = () => {
               <SelectValue placeholder="All Niches" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Niches</SelectItem>
+              <SelectItem value="all">All Niches</SelectItem>
               {NICHES.map((n) => (
                 <SelectItem key={n.id} value={n.id}>
                   {n.icon} {n.name}
@@ -153,7 +153,7 @@ const MarketplaceSection = () => {
               <SelectValue placeholder="All Countries" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Countries</SelectItem>
+              <SelectItem value="all">All Countries</SelectItem>
               {COUNTRIES.map((c) => (
                 <SelectItem key={c.code} value={c.code}>
                   {c.flag} {c.name}
