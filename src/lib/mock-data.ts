@@ -122,19 +122,102 @@ export const TRENDING_ADS = [
   { id: "6", product: "Neck Massager", views: "1.5M", likes: "88K", comments: "7K", duration: "0:55", platform: "Facebook" },
 ];
 
-export const BANNERS = Array.from({ length: 60 }, (_, i) => ({
-  id: `banner-${i + 1}`,
-  name: `Banner Design ${i + 1}`,
-  category: ["minimalist", "bold", "elegant", "tech", "lifestyle", "premium"][i % 6],
-  colors: [
-    ["#7B2CFF", "#00C2FF"],
-    ["#FF6B35", "#FFD700"],
-    ["#00C2FF", "#00FF88"],
-    ["#FF3366", "#7B2CFF"],
-    ["#1A1A2E", "#E94560"],
-    ["#667EEA", "#764BA2"],
-  ][i % 6],
-}));
+const NICHE_BANNER_IMAGES: Record<string, string[]> = {
+  beauty: [
+    "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1583241800698-e8ab01830a07?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&h=300&fit=crop",
+  ],
+  fitness: [
+    "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=600&h=300&fit=crop",
+  ],
+  tech: [
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&h=300&fit=crop",
+  ],
+  home: [
+    "https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1615529328331-f8917597711f?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&h=300&fit=crop",
+  ],
+  fashion: [
+    "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=600&h=300&fit=crop",
+  ],
+  pets: [
+    "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=600&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=600&h=300&fit=crop",
+  ],
+};
+
+const BANNER_STYLES = ["minimalist", "bold", "elegant", "tech", "lifestyle", "premium"];
+
+export const getBannersForNiche = (nicheId: string) => {
+  const images = NICHE_BANNER_IMAGES[nicheId] || NICHE_BANNER_IMAGES["tech"];
+  return Array.from({ length: 60 }, (_, i) => ({
+    id: `banner-${i + 1}`,
+    name: `Banner Design ${i + 1}`,
+    category: BANNER_STYLES[i % 6],
+    image: images[i % images.length],
+    colors: [
+      ["#7B2CFF", "#00C2FF"],
+      ["#FF6B35", "#FFD700"],
+      ["#00C2FF", "#00FF88"],
+      ["#FF3366", "#7B2CFF"],
+      ["#1A1A2E", "#E94560"],
+      ["#667EEA", "#764BA2"],
+    ][i % 6],
+  }));
+};
+
+export const BANNERS = getBannersForNiche("tech");
 
 export const generateTrendData = () =>
   Array.from({ length: 30 }, (_, i) => ({
