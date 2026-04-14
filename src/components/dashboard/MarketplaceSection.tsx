@@ -27,8 +27,7 @@ const ChampionsTab = ({
 }) => {
   const filtered = CHAMPION_PRODUCTS.filter((p) => {
     const matchNiche = nicheFilter ? p.niche === nicheFilter : true;
-    const matchCountry = countryFilter ? p.country === countryFilter : true;
-    return matchNiche && matchCountry;
+    return matchNiche;
   });
 
   if (filtered.length === 0) return <EmptyState message="No products found for the selected filters." />;
@@ -52,12 +51,11 @@ const TrendingTab = ({
   countryFilter: string;
   onSelect: (id: string) => void;
 }) => {
-  const TRENDING_PRODUCTS = [...CHAMPION_PRODUCTS].sort((a, b) => (b.trend ?? 0) - (a.trend ?? 0)).slice(0, 12);
+  const TRENDING_PRODUCTS = [...CHAMPION_PRODUCTS].sort((a, b) => (b.trendLevel === "hot" ? 1 : 0) - (a.trendLevel === "hot" ? 1 : 0)).slice(0, 12);
 
   const filtered = TRENDING_PRODUCTS.filter((p) => {
     const matchNiche = nicheFilter ? p.niche === nicheFilter : true;
-    const matchCountry = countryFilter ? p.country === countryFilter : true;
-    return matchNiche && matchCountry;
+    return matchNiche;
   });
 
   if (filtered.length === 0) return <EmptyState message="No trending products found for the selected filters." />;
@@ -192,7 +190,7 @@ const MarketplaceSection = () => {
             <SelectContent>
               <SelectItem value="">All Countries</SelectItem>
               {COUNTRIES.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
+                <SelectItem key={c.code} value={c.code}>
                   {c.name}
                 </SelectItem>
               ))}
