@@ -8,6 +8,7 @@ import ZyvorazLogo from "@/components/ZyvorazLogo";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import { lovable } from "@/integrations/lovable/index";
 
 const Login = () => {
   const navigate = useNavigate();
