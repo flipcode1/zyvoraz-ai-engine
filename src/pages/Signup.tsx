@@ -8,6 +8,7 @@ import ZyvorazLogo from "@/components/ZyvorazLogo";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, UserPlus, Zap, Globe, TrendingUp, Shield, CheckCircle } from "lucide-react";
+import { lovable } from "@/integrations/lovable/index";
 
 const FEATURES = [
   { icon: Zap, label: "AI-Powered Discovery" },
