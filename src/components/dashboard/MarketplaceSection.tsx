@@ -1,21 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CHAMPION_PRODUCTS, TRENDING_ADS, NICHES, COUNTRIES } from "@/lib/mock-data";
 import ProductCard from "./ProductCard";
 import ProductDetail from "./ProductDetail";
 import { Crown, Filter, TrendingUp, Tv, PackageSearch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
 type SubTab = "champions" | "ads" | "trending";
-
 const TREND_ORDER: Record<string, number> = { hot: 3, rising: 2, stable: 1 };
-
 const EmptyState = ({ message }: { message: string }) => (
   <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
     <PackageSearch size={40} className="text-muted-foreground/40" />
     <p className="text-muted-foreground text-sm">{message}</p>
   </div>
 );
-
 const ChampionsTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect: (id: string) => void }) => {
   const filtered = CHAMPION_PRODUCTS.filter((p) => (nicheFilter ? p.niche === nicheFilter : true));
   if (filtered.length === 0) return <EmptyState message="No products found for the selected niche." />;
@@ -27,7 +23,6 @@ const ChampionsTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect
     </div>
   );
 };
-
 const TrendingTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect: (id: string) => void }) => {
   const trending = [...CHAMPION_PRODUCTS].sort(
     (a, b) => (TREND_ORDER[b.trendLevel] ?? 0) - (TREND_ORDER[a.trendLevel] ?? 0),
@@ -42,7 +37,6 @@ const TrendingTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect:
     </div>
   );
 };
-
 const AdsTab = () => {
   if (TRENDING_ADS.length === 0) return <EmptyState message="No ads available right now." />;
   return (
@@ -80,34 +74,52 @@ const AdsTab = () => {
     </div>
   );
 };
-
 const MarketplaceSection = () => {
   const [subTab, setSubTab] = useState<SubTab>("champions");
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [nicheFilter, setNicheFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
-
+  const [loading, setLoading] = useState(true);
+  // Simula carregamento de dados reais (substitua por fetch)
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
   const handleTabChange = (tab: SubTab) => {
     setSubTab(tab);
     setNicheFilter("");
     setCountryFilter("");
   };
-
   const product = CHAMPION_PRODUCTS.find((p) => p.id === selectedProduct);
   if (product) {
     return <ProductDetail product={product} onBack={() => setSelectedProduct(null)} />;
   }
-
   const showFilters = subTab === "champions" || subTab === "trending";
   const hasActiveFilter = nicheFilter || countryFilter;
-
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 bg-muted rounded animate-pulse w-1/3"></div>
+        <div className="h-10 bg-muted rounded animate-pulse w-1/4"></div>
+        <div className="flex gap-2 flex-wrap">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-9 bg-muted rounded animate-pulse w-32"></div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-72 bg-muted rounded animate-pulse"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold">Marketplace</h1>
         <p className="text-muted-foreground">Discover winning products powered by AI</p>
       </div>
-
       <div className="flex gap-2 flex-wrap">
         {(
           [
@@ -130,7 +142,6 @@ const MarketplaceSection = () => {
           </button>
         ))}
       </div>
-
       {showFilters && (
         <div className="flex gap-3 items-center flex-wrap">
           <Filter size={14} className="text-muted-foreground" />
@@ -147,7 +158,6 @@ const MarketplaceSection = () => {
               ))}
             </SelectContent>
           </Select>
-
           <Select value={countryFilter || "all"} onValueChange={(v) => setCountryFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-44 h-9 text-sm">
               <SelectValue placeholder="All Countries" />
@@ -161,7 +171,6 @@ const MarketplaceSection = () => {
               ))}
             </SelectContent>
           </Select>
-
           {hasActiveFilter && (
             <button
               onClick={() => {
@@ -175,12 +184,10 @@ const MarketplaceSection = () => {
           )}
         </div>
       )}
-
       {subTab === "champions" && <ChampionsTab nicheFilter={nicheFilter} onSelect={setSelectedProduct} />}
       {subTab === "trending" && <TrendingTab nicheFilter={nicheFilter} onSelect={setSelectedProduct} />}
       {subTab === "ads" && <AdsTab />}
     </div>
   );
 };
-
 export default MarketplaceSection;
