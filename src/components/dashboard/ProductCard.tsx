@@ -1,6 +1,7 @@
 import { CHAMPION_PRODUCTS, NICHES } from "@/lib/mock-data";
 import { TrendingUp, ShoppingCart, DollarSign, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 type Product = (typeof CHAMPION_PRODUCTS)[0];
 
