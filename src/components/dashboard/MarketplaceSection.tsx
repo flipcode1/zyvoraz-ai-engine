@@ -5,8 +5,8 @@ import ProductDetail from "./ProductDetail";
 import { Crown, Filter, TrendingUp, Tv, PackageSearch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// ⚠️ SUAS CREDENCIAIS CORRIGIDAS (com aspas!)
-const SUPABASE_URL = "https://gscmtinnvtbvokmd.supabase.co";
+// ⚠️ URL CORRIGIDA (com o ID do seu projeto)
+const SUPABASE_URL = "https://ygldeegezinawimqpugfk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbHplZWdpbmF3aW1xcHVnZmsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3NjI0OTcwOCwiZXhwIjoyMDkxODI1NzA4fQ.szCuCMbWdrLoo_lflio3L6WhKXYM_UCGAXnbqLiZQIU";
 
@@ -113,6 +113,7 @@ const MarketplaceSection = () => {
       try {
         setLoading(true);
         console.log("🔍 Buscando produtos via REST API...");
+        console.log("URL:", `${SUPABASE_URL}/rest/v1/products?select=*`);
 
         const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*`, {
           headers: {
