@@ -4,6 +4,8 @@ import ProductCard from "./ProductCard";
 import ProductDetail from "./ProductDetail";
 import { Crown, Filter, TrendingUp, Tv, PackageSearch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client"; // 👈 NOVO
+
 type SubTab = "champions" | "ads" | "trending";
 
 const TREND_ORDER: Record<string, number> = { hot: 3, rising: 2, stable: 1 };
@@ -104,11 +106,43 @@ const MarketplaceSection = () => {
   const [nicheFilter, setNicheFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]); // 👈 NOVO: produtos vindos do Supabase
 
+  // 👇 NOVO: Buscar produtos do Supabase
   useEffect(() => {
-    setProducts(CHAMPION_PRODUCTS);
-    setLoading(false);
+    async function fetchProducts() {
+      setLoading(true);
+      const { data, error } = await supabase.from("products").select("*");
+
+      if (error) {
+        console.error("Erro ao buscar produtos:", error);
+        // Fallback: usar dados mockados se der erro
+        setProducts(CHAMPION_PRODUCTS);
+      } else if (data && data.length > 0) {
+        // Converter produtos do Supabase para o formato esperado pelo ProductCard
+        const formattedProducts = data.map((p) => ({
+          id: String(p.id),
+          name: p.title,
+          price: p.price,
+          image: p.image_url,
+          niche: p.category || "general",
+          trendLevel: "stable", // valor padrão
+          sales: 0,
+          revenue: 0,
+          profit: 0,
+          roi: 0,
+          // manter campos originais para compatibilidade
+          ...p,
+        }));
+        setProducts(formattedProducts);
+      } else {
+        // Se não há produtos no Supabase, usar mockados
+        setProducts(CHAMPION_PRODUCTS);
+      }
+      setLoading(false);
+    }
+
+    fetchProducts();
   }, []);
 
   const handleTabChange = (tab: SubTab) => {
