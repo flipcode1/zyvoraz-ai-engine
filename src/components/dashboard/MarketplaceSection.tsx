@@ -4,16 +4,30 @@ import ProductCard from "./ProductCard";
 import ProductDetail from "./ProductDetail";
 import { Crown, Filter, TrendingUp, Tv, PackageSearch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client"; // 👈 NOVO
+
 type SubTab = "champions" | "ads" | "trending";
+
 const TREND_ORDER: Record<string, number> = { hot: 3, rising: 2, stable: 1 };
+
 const EmptyState = ({ message }: { message: string }) => (
   <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
     <PackageSearch size={40} className="text-muted-foreground/40" />
     <p className="text-muted-foreground text-sm">{message}</p>
   </div>
 );
-const ChampionsTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect: (id: string) => void }) => {
-  const filtered = CHAMPION_PRODUCTS.filter((p) => (nicheFilter ? p.niche === nicheFilter : true));
+
+// 👇 NOVO: Componente ChampionsTab adaptado para Supabase
+const ChampionsTab = ({
+  nicheFilter,
+  onSelect,
+  products,
+}: {
+  nicheFilter: string;
+  onSelect: (id: string) => void;
+  products: any[];
+}) => {
+  const filtered = products.filter((p) => (nicheFilter ? p.niche === nicheFilter : true));
   if (filtered.length === 0) return <EmptyState message="No products found for the selected niche." />;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -23,10 +37,18 @@ const ChampionsTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect
     </div>
   );
 };
-const TrendingTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect: (id: string) => void }) => {
-  const trending = [...CHAMPION_PRODUCTS].sort(
-    (a, b) => (TREND_ORDER[b.trendLevel] ?? 0) - (TREND_ORDER[a.trendLevel] ?? 0),
-  );
+
+// 👇 NOVO: TrendingTab adaptado para Supabase
+const TrendingTab = ({
+  nicheFilter,
+  onSelect,
+  products,
+}: {
+  nicheFilter: string;
+  onSelect: (id: string) => void;
+  products: any[];
+}) => {
+  const trending = [...products].sort((a, b) => (TREND_ORDER[b.trendLevel] ?? 0) - (TREND_ORDER[a.trendLevel] ?? 0));
   const filtered = trending.filter((p) => (nicheFilter ? p.niche === nicheFilter : true));
   if (filtered.length === 0) return <EmptyState message="No trending products found for the selected niche." />;
   return (
@@ -37,6 +59,8 @@ const TrendingTab = ({ nicheFilter, onSelect }: { nicheFilter: string; onSelect:
     </div>
   );
 };
+
+// AdsTab permanece IGUAL (por enquanto)
 const AdsTab = () => {
   if (TRENDING_ADS.length === 0) return <EmptyState message="No ads available right now." />;
   return (
@@ -74,28 +98,69 @@ const AdsTab = () => {
     </div>
   );
 };
+
+// 👇 COMPONENTE PRINCIPAL - MUITAS MUDANÇAS AQUI
 const MarketplaceSection = () => {
   const [subTab, setSubTab] = useState<SubTab>("champions");
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [nicheFilter, setNicheFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  // Simula carregamento de dados reais (substitua por fetch)
+  const [products, setProducts] = useState<any[]>([]); // 👈 NOVO: produtos vindos do Supabase
+
+  // 👇 NOVO: Buscar produtos do Supabase
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
+    async function fetchProducts() {
+      setLoading(true);
+      const { data, error } = await supabase.from("products").select("*");
+
+      if (error) {
+        console.error("Erro ao buscar produtos:", error);
+        // Fallback: usar dados mockados se der erro
+        setProducts(CHAMPION_PRODUCTS);
+      } else if (data && data.length > 0) {
+        // Converter produtos do Supabase para o formato esperado pelo ProductCard
+        const formattedProducts = data.map((p) => ({
+          id: String(p.id),
+          name: p.title,
+          price: p.price,
+          image: p.image_url,
+          niche: p.category || "general",
+          trendLevel: "stable", // valor padrão
+          sales: 0,
+          revenue: 0,
+          profit: 0,
+          roi: 0,
+          // manter campos originais para compatibilidade
+          ...p,
+        }));
+        setProducts(formattedProducts);
+      } else {
+        // Se não há produtos no Supabase, usar mockados
+        setProducts(CHAMPION_PRODUCTS);
+      }
+      setLoading(false);
+    }
+
+    fetchProducts();
   }, []);
+
   const handleTabChange = (tab: SubTab) => {
     setSubTab(tab);
     setNicheFilter("");
     setCountryFilter("");
   };
-  const product = CHAMPION_PRODUCTS.find((p) => p.id === selectedProduct);
+
+  // 👇 IMPORTANTE: Buscar o produto selecionado nos produtos carregados
+  const product = products.find((p) => p.id === selectedProduct);
+
   if (product) {
     return <ProductDetail product={product} onBack={() => setSelectedProduct(null)} />;
   }
+
   const showFilters = subTab === "champions" || subTab === "trending";
   const hasActiveFilter = nicheFilter || countryFilter;
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -114,12 +179,14 @@ const MarketplaceSection = () => {
       </div>
     );
   }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold">Marketplace</h1>
         <p className="text-muted-foreground">Discover winning products powered by AI</p>
       </div>
+
       <div className="flex gap-2 flex-wrap">
         {(
           [
@@ -142,6 +209,7 @@ const MarketplaceSection = () => {
           </button>
         ))}
       </div>
+
       {showFilters && (
         <div className="flex gap-3 items-center flex-wrap">
           <Filter size={14} className="text-muted-foreground" />
@@ -184,10 +252,26 @@ const MarketplaceSection = () => {
           )}
         </div>
       )}
-      {subTab === "champions" && <ChampionsTab nicheFilter={nicheFilter} onSelect={setSelectedProduct} />}
-      {subTab === "trending" && <TrendingTab nicheFilter={nicheFilter} onSelect={setSelectedProduct} />}
+
+      {subTab === "champions" && (
+        <ChampionsTab
+          nicheFilter={nicheFilter}
+          onSelect={setSelectedProduct}
+          products={products} // 👈 PASSA OS PRODUTOS DO SUPABASE
+        />
+      )}
+
+      {subTab === "trending" && (
+        <TrendingTab
+          nicheFilter={nicheFilter}
+          onSelect={setSelectedProduct}
+          products={products} // 👈 PASSA OS PRODUTOS DO SUPABASE
+        />
+      )}
+
       {subTab === "ads" && <AdsTab />}
     </div>
   );
 };
+
 export default MarketplaceSection;
