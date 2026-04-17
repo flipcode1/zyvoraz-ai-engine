@@ -110,6 +110,7 @@ const MarketplaceSection = () => {
         setLoading(true);
         console.log("🔍 Buscando produtos do Supabase...");
 
+        // @ts-ignore - Ignorando erro de tipagem do Supabase
         const { data, error } = await supabase.from("products").select("*");
 
         if (error) {
@@ -121,14 +122,14 @@ const MarketplaceSection = () => {
 
         if (data && data.length > 0) {
           // Converte para o formato que o ProductCard espera
-          const formattedProducts = data.map((p) => ({
+          const formattedProducts = data.map((p: any) => ({
             id: String(p.id),
             name: p.title,
             image: p.image_url,
             price: p.price,
-            sellPrice: p.price, // mesmo preço por enquanto
+            sellPrice: p.price,
             niche: p.category || p.niche || "general",
-            trendLevel: p.trendlevel || "stable",
+            trendLevel: p.trendlevel || p.trendLevel || "stable",
             profitMargin: p.margin ? `${p.margin}%` : "30%",
             orders: String(p.sales || 0),
             source: p.supplier || "AliExpress",
