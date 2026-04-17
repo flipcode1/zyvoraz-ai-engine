@@ -1,134 +1,209 @@
-import { useState } from "react";
-import { Package } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { CHAMPION_PRODUCTS } from "@/lib/mock-data";
-import { toast } from "sonner";
+"use client";
 
-const AdminProducts = () => {
-  const [products, setProducts] = useState(CHAMPION_PRODUCTS);
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+export default function AdminProducts() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
-    name: "",
-    image: "",
-    niche: "",
-    price: 0,
-    sellPrice: 0,
-    description: "",
+    title: "",
+    price: "",
+    image_url: "",
+    category: "",
+    supplier: "AliExpress",
+    margin: "30",
+    sales: "0",
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const handleAdd = (e: React.FormEvent) => {
+  // Buscar produtos
+  async function fetchProducts() {
+    const { data } = await supabase.from("products").select("*").order("id", { ascending: false });
+    if (data) setProducts(data);
+    setLoading(false);
+  }
+
+  // Salvar produto (criar ou editar)
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name || !form.image) {
-      toast.error("Name and image are required");
-      return;
-    }
-    const newProduct = {
-      id: `prod-${Date.now()}`,
-      name: form.name,
-      image: form.image,
-      niche: form.niche || "general",
-      profitMargin: "0%",
-      orders: "0",
-      source: "Manual",
-      trendLevel: "stable",
-      price: Number(form.price),
-      sellPrice: Number(form.sellPrice),
-      description: form.description,
-      benefits: [],
-      targetAudience: "",
-    };
-    setProducts([newProduct, ...products]);
-    setForm({ name: "", image: "", niche: "", price: 0, sellPrice: 0, description: "" });
-    toast.success("Product added");
-  };
 
-  const handleDelete = (id: string) => {
-    setProducts(products.filter((p) => p.id !== id));
-    toast.success("Product removed");
-  };
+    const productData = {
+      title: form.title,
+      price: parseFloat(form.price),
+      image_url: form.image_url,
+      category: form.category,
+      supplier: form.supplier,
+      margin: parseFloat(form.margin),
+      sales: parseInt(form.sales),
+    };
+
+    if (editingId) {
+      await supabase.from("products").update(productData).eq("id", editingId);
+      alert("Produto atualizado!");
+    } else {
+      await supabase.from("products").insert([productData]);
+      alert("Produto adicionado!");
+    }
+
+    // Limpar formulário
+    setForm({ title: "", price: "", image_url: "", category: "", supplier: "AliExpress", margin: "30", sales: "0" });
+    setEditingId(null);
+    fetchProducts();
+  }
+
+  // Editar produto
+  function editProduct(product: any) {
+    setEditingId(product.id);
+    setForm({
+      title: product.title,
+      price: product.price,
+      image_url: product.image_url || "",
+      category: product.category || "",
+      supplier: product.supplier || "AliExpress",
+      margin: product.margin,
+      sales: product.sales,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Deletar produto
+  async function deleteProduct(id: string) {
+    if (confirm("Tem certeza?")) {
+      await supabase.from("products").delete().eq("id", id);
+      fetchProducts();
+    }
+  }
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  if (loading) return <div className="p-8">Carregando...</div>;
 
   return (
-    <div className="min-h-screen bg-background p-6 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-          <Package size={28} className="text-primary" /> Admin Products
-        </h1>
-        <p className="text-muted-foreground">Manage product catalog</p>
-      </div>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Painel Admin - Produtos</h1>
 
-      <Card className="p-6">
-        <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Name</Label>
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div>
-            <Label>Image URL</Label>
-            <Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
-          </div>
-          <div>
-            <Label>Niche</Label>
-            <Input value={form.niche} onChange={(e) => setForm({ ...form, niche: e.target.value })} />
-          </div>
-          <div>
-            <Label>Cost Price</Label>
-            <Input
-              type="number"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-            />
-          </div>
-          <div>
-            <Label>Sell Price</Label>
-            <Input
-              type="number"
-              value={form.sellPrice}
-              onChange={(e) => setForm({ ...form, sellPrice: Number(e.target.value) })}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <Label>Description</Label>
-            <Input
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <Button type="submit" className="gradient-bg text-primary-foreground">
-              Add Product
-            </Button>
+      {/* Formulário */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-8">
+        <h2 className="text-xl font-semibold mb-4">{editingId ? "Editar Produto" : "Novo Produto"}</h2>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            type="text"
+            placeholder="Título"
+            className="p-2 border rounded dark:bg-gray-700"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            required
+          />
+          <input
+            type="number"
+            placeholder="Preço (€)"
+            step="0.01"
+            className="p-2 border rounded dark:bg-gray-700"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            required
+          />
+          <input
+            type="url"
+            placeholder="URL da Imagem"
+            className="p-2 border rounded dark:bg-gray-700"
+            value={form.image_url}
+            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Categoria"
+            className="p-2 border rounded dark:bg-gray-700"
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+          />
+          <select
+            className="p-2 border rounded dark:bg-gray-700"
+            value={form.supplier}
+            onChange={(e) => setForm({ ...form, supplier: e.target.value })}
+          >
+            <option>AliExpress</option>
+            <option>Shein</option>
+            <option>TikTok Shop</option>
+            <option>Amazon</option>
+          </select>
+          <input
+            type="number"
+            placeholder="Margem (%)"
+            className="p-2 border rounded dark:bg-gray-700"
+            value={form.margin}
+            onChange={(e) => setForm({ ...form, margin: e.target.value })}
+          />
+          <input
+            type="number"
+            placeholder="Vendas"
+            className="p-2 border rounded dark:bg-gray-700"
+            value={form.sales}
+            onChange={(e) => setForm({ ...form, sales: e.target.value })}
+          />
+          <div className="flex gap-2 md:col-span-2">
+            <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              {editingId ? "Atualizar" : "Cadastrar"}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingId(null);
+                  setForm({
+                    title: "",
+                    price: "",
+                    image_url: "",
+                    category: "",
+                    supplier: "AliExpress",
+                    margin: "30",
+                    sales: "0",
+                  });
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              >
+                Cancelar
+              </button>
+            )}
           </div>
         </form>
-      </Card>
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Lista de produtos */}
+      <h2 className="text-xl font-semibold mb-4">Produtos Cadastrados ({products.length})</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {products.map((p) => (
-          <Card key={p.id} className="p-4 space-y-2">
+          <div key={p.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800">
             <img
-              src={p.image}
-              alt={p.name}
-              className="w-full h-32 object-cover rounded-md"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "/placeholder.svg";
-              }}
+              src={p.image_url || "https://via.placeholder.com/300"}
+              alt={p.title}
+              className="w-full h-40 object-cover rounded mb-2"
             />
-            <h3 className="font-semibold truncate">{p.name}</h3>
-            <p className="text-sm text-muted-foreground">${p.sellPrice}</p>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleDelete(p.id)}
-              className="w-full"
-            >
-              Delete
-            </Button>
-          </Card>
+            <h3 className="font-bold">{p.title}</h3>
+            <p className="text-green-600">€{p.price}</p>
+            <p className="text-sm text-gray-500">
+              Margem: {p.margin}% | Vendas: {p.sales}
+            </p>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => editProduct(p)}
+                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+              >
+                Editar
+              </button>
+              <button
+                onClick={() => deleteProduct(p.id)}
+                className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
         ))}
       </div>
     </div>
   );
-};
-
-export default AdminProducts;
+}
