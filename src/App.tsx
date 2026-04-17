@@ -19,7 +19,6 @@ import SourcingRequest from "./pages/dashboard/SourcingRequest";
 import Products from "./pages/dashboard/Products";
 import CustomerSupport from "./pages/dashboard/CustomerSupport";
 import Messages from "./pages/dashboard/Messages";
-// 👇 NOVO IMPORT
 import AdminProducts from "./pages/AdminProducts";
 
 const queryClient = new QueryClient();
@@ -60,16 +59,9 @@ const App = () => (
               <Route path="safe-place" element={<SafePlaceSection />} />
               <Route path="support" element={<CustomerSupport />} />
               <Route path="messages" element={<Messages />} />
+              {/* 👇 ADMIN AGORA DENTRO DO DASHBOARD */}
+              <Route path="admin" element={<AdminProducts />} />
             </Route>
-            {/* 👇 NOVA ROTA DO ADMIN */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute requireOnboarding>
-                  <AdminProducts />
-                </ProtectedRoute>
-              }
-            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
