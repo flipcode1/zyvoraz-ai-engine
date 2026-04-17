@@ -5,12 +5,10 @@ import ProductDetail from "./ProductDetail";
 import { Crown, Filter, TrendingUp, Tv, PackageSearch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// ⚠️ SUBSTITUA PELAS SUAS CREDENCIAIS ⚠️
-const SUPABASE_URL = ydelgeezinawimqpgufk;
+// ⚠️ SUAS CREDENCIAIS CORRIGIDAS (com aspas!)
+const SUPABASE_URL = "https://gscmtinnvtbvokmd.supabase.co";
 const SUPABASE_ANON_KEY =
-  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-    .eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0
-    .szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU;
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbHplZWdpbmF3aW1xcHVnZmsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3NjI0OTcwOCwiZXhwIjoyMDkxODI1NzA4fQ.szCuCMbWdrLoo_lflio3L6WhKXYM_UCGAXnbqLiZQIU";
 
 type SubTab = "champions" | "ads" | "trending";
 
@@ -116,7 +114,6 @@ const MarketplaceSection = () => {
         setLoading(true);
         console.log("🔍 Buscando produtos via REST API...");
 
-        // Faz requisição direta para a API REST do Supabase
         const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*`, {
           headers: {
             apikey: SUPABASE_ANON_KEY,
