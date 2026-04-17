@@ -132,36 +132,40 @@ export default function AdminProducts() {
           <input
             type="text"
             placeholder="Título"
-            className="p-2 border rounded dark:bg-gray-700"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             required
           />
+
           <input
             type="number"
             placeholder="Preço (€)"
             step="0.01"
-            className="p-2 border rounded dark:bg-gray-700"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
             required
           />
+
           <input
             type="url"
-            placeholder="URL da Imagem"
-            className="p-2 border rounded dark:bg-gray-700"
+            placeholder="URL da Imagem (ex: https://picsum.photos/id/0/300/200)"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             value={form.image_url}
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           />
+
           <input
             type="text"
-            placeholder="Categoria"
-            className="p-2 border rounded dark:bg-gray-700"
+            placeholder="Categoria (ex: Eletrônicos, Moda, Casa)"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           />
+
           <select
-            className="p-2 border rounded dark:bg-gray-700"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={form.supplier}
             onChange={(e) => setForm({ ...form, supplier: e.target.value })}
           >
@@ -170,20 +174,23 @@ export default function AdminProducts() {
             <option>TikTok Shop</option>
             <option>Amazon</option>
           </select>
+
           <input
             type="number"
             placeholder="Margem (%)"
-            className="p-2 border rounded dark:bg-gray-700"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             value={form.margin}
             onChange={(e) => setForm({ ...form, margin: e.target.value })}
           />
+
           <input
             type="number"
             placeholder="Vendas"
-            className="p-2 border rounded dark:bg-gray-700"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             value={form.sales}
             onChange={(e) => setForm({ ...form, sales: e.target.value })}
           />
+
           <div className="flex gap-2 md:col-span-2">
             <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
               {editingId ? "Atualizar" : "Cadastrar"}
@@ -218,12 +225,12 @@ export default function AdminProducts() {
         {products.map((p: any) => (
           <div key={p.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800">
             <img
-              src={p.image_url || "https://via.placeholder.com/300"}
+              src={p.image_url || "https://via.placeholder.com/300x200?text=Sem+Imagem"}
               alt={p.title}
               className="w-full h-40 object-cover rounded mb-2"
             />
-            <h3 className="font-bold">{p.title}</h3>
-            <p className="text-green-600">€{p.price}</p>
+            <h3 className="font-bold text-gray-900 dark:text-white">{p.title}</h3>
+            <p className="text-green-600 font-semibold">€{p.price}</p>
             <p className="text-sm text-gray-500">
               Margem: {p.margin}% | Vendas: {p.sales}
             </p>
