@@ -1,7 +1,9 @@
-"use client";
-
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+
+// URL direta do Supabase (mesma do Marketplace)
+const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0.szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
@@ -19,12 +21,22 @@ export default function AdminProducts() {
 
   // Buscar produtos
   async function fetchProducts() {
-    const { data } = await supabase.from("products").select("*").order("id", { ascending: false });
-    if (data) setProducts(data);
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=id.desc`, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+      const data = await response.json();
+      setProducts(data);
+    } catch (err) {
+      console.error("Erro ao buscar:", err);
+    }
     setLoading(false);
   }
 
-  // Salvar produto (criar ou editar)
+  // Salvar produto
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -38,21 +50,40 @@ export default function AdminProducts() {
       sales: parseInt(form.sales),
     };
 
-    if (editingId) {
-      await supabase.from("products").update(productData).eq("id", editingId);
-      alert("Produto atualizado!");
-    } else {
-      await supabase.from("products").insert([productData]);
-      alert("Produto adicionado!");
+    try {
+      if (editingId) {
+        await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${editingId}`, {
+          method: "PATCH",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productData),
+        });
+        alert("Produto atualizado!");
+      } else {
+        await fetch(`${SUPABASE_URL}/rest/v1/products`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productData),
+        });
+        alert("Produto adicionado!");
+      }
+    } catch (err) {
+      console.error("Erro:", err);
+      alert("Erro ao salvar produto");
     }
 
-    // Limpar formulário
     setForm({ title: "", price: "", image_url: "", category: "", supplier: "AliExpress", margin: "30", sales: "0" });
     setEditingId(null);
     fetchProducts();
   }
 
-  // Editar produto
   function editProduct(product: any) {
     setEditingId(product.id);
     setForm({
@@ -67,11 +98,20 @@ export default function AdminProducts() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // Deletar produto
   async function deleteProduct(id: string) {
-    if (confirm("Tem certeza?")) {
-      await supabase.from("products").delete().eq("id", id);
-      fetchProducts();
+    if (confirm("Tem certeza que quer excluir este produto?")) {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}`, {
+          method: "DELETE",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        });
+        fetchProducts();
+      } catch (err) {
+        console.error("Erro ao deletar:", err);
+      }
     }
   }
 
@@ -79,7 +119,7 @@ export default function AdminProducts() {
     fetchProducts();
   }, []);
 
-  if (loading) return <div className="p-8">Carregando...</div>;
+  if (loading) return <div className="p-8 text-center">Carregando produtos...</div>;
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -175,7 +215,7 @@ export default function AdminProducts() {
       {/* Lista de produtos */}
       <h2 className="text-xl font-semibold mb-4">Produtos Cadastrados ({products.length})</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((p) => (
+        {products.map((p: any) => (
           <div key={p.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800">
             <img
               src={p.image_url || "https://via.placeholder.com/300"}
