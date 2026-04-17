@@ -5,10 +5,9 @@ import ProductDetail from "./ProductDetail";
 import { Crown, Filter, TrendingUp, Tv, PackageSearch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// URLs CORRETAS do seu Supabase
 const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbHplZWdpbmF3aW1xcHVnZmsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3NjI0OTcwOCwiZXhwIjoyMDkxODI1NzA4fQ.szCuCMbWdrLoo_lflio3L6WhKXYM_UCGAXnbqLiZQIU";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0.szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU";
 
 type SubTab = "champions" | "ads" | "trending";
 
@@ -115,7 +114,6 @@ const MarketplaceSection = () => {
         console.log("🔍 Buscando produtos...");
 
         const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*`, {
-          method: "GET",
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -123,34 +121,33 @@ const MarketplaceSection = () => {
           },
         });
 
-        console.log("Status da resposta:", response.status);
+        console.log("Status:", response.status);
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Erro resposta:", errorText);
           throw new Error(`HTTP ${response.status}`);
         }
 
         const data = await response.json();
-        console.log("✅ Dados recebidos:", data);
+        console.log("✅ Produtos recebidos:", data);
 
         if (data && data.length > 0) {
-          const formattedProducts = data.map((p: any) => ({
+          const formatted = data.map((p: any) => ({
             id: String(p.id),
             name: p.title,
             image: p.image_url,
             price: p.price,
             sellPrice: p.price,
-            niche: p.category || p.niche || "general",
-            trendLevel: p.trend_level || "stable",
+            niche: p.category || "general",
+            trendLevel: p.trendlevel || "stable",
             profitMargin: p.margin ? `${p.margin}%` : "30%",
             orders: String(p.sales || 0),
             source: p.supplier || "AliExpress",
-            description: `${p.title} - Produto de alta qualidade`,
-            benefits: ["Alta demanda", "Boa margem", "Fornecedor confiável"],
-            targetAudience: "Empreendedores digitais",
+            description: p.title,
+            benefits: ["Alta demanda", "Boa margem"],
+            targetAudience: "Empreendedores",
           }));
-          setProducts(formattedProducts);
+          setProducts(formatted);
+          console.log("✅ Produtos formatados:", formatted);
         } else {
           console.log("⚠️ Nenhum produto, usando mockados");
           setProducts(CHAMPION_PRODUCTS);
