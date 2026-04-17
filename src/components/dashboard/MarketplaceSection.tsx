@@ -5,8 +5,8 @@ import ProductDetail from "./ProductDetail";
 import { Crown, Filter, TrendingUp, Tv, PackageSearch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// ⚠️ URL CORRIGIDA (com o ID do seu projeto)
-const SUPABASE_URL = "https://ygldeegezinawimqpugfk.supabase.co";
+// URLs CORRETAS do seu Supabase
+const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbHplZWdpbmF3aW1xcHVnZmsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3NjI0OTcwOCwiZXhwIjoyMDkxODI1NzA4fQ.szCuCMbWdrLoo_lflio3L6WhKXYM_UCGAXnbqLiZQIU";
 
@@ -112,10 +112,10 @@ const MarketplaceSection = () => {
     async function fetchProducts() {
       try {
         setLoading(true);
-        console.log("🔍 Buscando produtos via REST API...");
-        console.log("URL:", `${SUPABASE_URL}/rest/v1/products?select=*`);
+        console.log("🔍 Buscando produtos...");
 
         const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*`, {
+          method: "GET",
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -123,8 +123,12 @@ const MarketplaceSection = () => {
           },
         });
 
+        console.log("Status da resposta:", response.status);
+
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error("Erro resposta:", errorText);
+          throw new Error(`HTTP ${response.status}`);
         }
 
         const data = await response.json();
@@ -138,21 +142,21 @@ const MarketplaceSection = () => {
             price: p.price,
             sellPrice: p.price,
             niche: p.category || p.niche || "general",
-            trendLevel: p.trend_level || p.trendLevel || "stable",
+            trendLevel: p.trend_level || "stable",
             profitMargin: p.margin ? `${p.margin}%` : "30%",
             orders: String(p.sales || 0),
             source: p.supplier || "AliExpress",
-            description: `${p.title} - Produto de alta qualidade para dropshipping`,
+            description: `${p.title} - Produto de alta qualidade`,
             benefits: ["Alta demanda", "Boa margem", "Fornecedor confiável"],
             targetAudience: "Empreendedores digitais",
           }));
           setProducts(formattedProducts);
         } else {
-          console.log("⚠️ Nenhum produto encontrado, usando mockados");
+          console.log("⚠️ Nenhum produto, usando mockados");
           setProducts(CHAMPION_PRODUCTS);
         }
       } catch (err) {
-        console.error("❌ Erro na busca:", err);
+        console.error("❌ Erro:", err);
         setProducts(CHAMPION_PRODUCTS);
       } finally {
         setLoading(false);
