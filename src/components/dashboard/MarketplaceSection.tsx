@@ -8,23 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 type SubTab = "champions" | "ads" | "trending";
 
-// Interface para tipagem correta
-interface Product {
-  id: string | number;
-  name: string;
-  price: number;
-  image: string;
-  niche: string;
-  trendLevel: string;
-  sales: number;
-  revenue: number;
-  profit: number;
-  roi: number;
-  title?: string;
-  image_url?: string;
-  category?: string;
-}
-
 const TREND_ORDER: Record<string, number> = { hot: 3, rising: 2, stable: 1 };
 
 const EmptyState = ({ message }: { message: string }) => (
@@ -41,14 +24,14 @@ const ChampionsTab = ({
 }: {
   nicheFilter: string;
   onSelect: (id: string) => void;
-  products: Product[];
+  products: any[];
 }) => {
   const filtered = products.filter((p) => (nicheFilter ? p.niche === nicheFilter : true));
   if (filtered.length === 0) return <EmptyState message="No products found for the selected niche." />;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {filtered.map((p) => (
-        <ProductCard key={p.id} product={p} onClick={() => onSelect(String(p.id))} />
+        <ProductCard key={p.id} product={p} onClick={() => onSelect(p.id)} />
       ))}
     </div>
   );
@@ -61,7 +44,7 @@ const TrendingTab = ({
 }: {
   nicheFilter: string;
   onSelect: (id: string) => void;
-  products: Product[];
+  products: any[];
 }) => {
   const trending = [...products].sort((a, b) => (TREND_ORDER[b.trendLevel] ?? 0) - (TREND_ORDER[a.trendLevel] ?? 0));
   const filtered = trending.filter((p) => (nicheFilter ? p.niche === nicheFilter : true));
@@ -69,7 +52,7 @@ const TrendingTab = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {filtered.map((p) => (
-        <ProductCard key={p.id} product={p} onClick={() => onSelect(String(p.id))} />
+        <ProductCard key={p.id} product={p} onClick={() => onSelect(p.id)} />
       ))}
     </div>
   );
@@ -119,46 +102,48 @@ const MarketplaceSection = () => {
   const [nicheFilter, setNicheFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchProducts() {
       try {
         setLoading(true);
-        console.log("Buscando produtos do Supabase...");
+        console.log("🔍 Buscando produtos do Supabase...");
 
         const { data, error } = await supabase.from("products").select("*");
 
         if (error) {
-          console.error("Erro detalhado:", error);
+          console.error("❌ Erro:", error);
           throw error;
         }
 
-        console.log("Dados recebidos:", data);
+        console.log("✅ Dados recebidos:", data);
 
         if (data && data.length > 0) {
-          // Converte do formato Supabase para o formato Product
-          const formattedProducts: Product[] = data.map((p) => ({
+          // Converte para o formato que o ProductCard espera
+          const formattedProducts = data.map((p) => ({
             id: String(p.id),
             name: p.title,
+            image: p.image_url,
             price: p.price,
-            image: p.image_url || "https://picsum.photos/300/200",
+            sellPrice: p.price, // mesmo preço por enquanto
             niche: p.category || p.niche || "general",
             trendLevel: p.trendlevel || "stable",
-            sales: p.sales || 0,
-            revenue: p.revenue || 0,
-            profit: p.profit || 0,
-            roi: p.roi || 0,
+            profitMargin: p.margin ? `${p.margin}%` : "30%",
+            orders: String(p.sales || 0),
+            source: p.supplier || "AliExpress",
+            description: `${p.title} - Produto de alta qualidade para dropshipping`,
+            benefits: ["Alta demanda", "Boa margem", "Fornecedor confiável"],
+            targetAudience: "Empreendedores digitais",
           }));
           setProducts(formattedProducts);
         } else {
-          console.log("Nenhum produto encontrado, usando mockados");
-          // Fallback para dados mockados
-          setProducts(CHAMPION_PRODUCTS as Product[]);
+          console.log("⚠️ Nenhum produto encontrado, usando mockados");
+          setProducts(CHAMPION_PRODUCTS);
         }
       } catch (err) {
-        console.error("Erro na busca:", err);
-        setProducts(CHAMPION_PRODUCTS as Product[]);
+        console.error("❌ Erro na busca:", err);
+        setProducts(CHAMPION_PRODUCTS);
       } finally {
         setLoading(false);
       }
@@ -173,7 +158,7 @@ const MarketplaceSection = () => {
     setCountryFilter("");
   };
 
-  const product = products.find((p) => String(p.id) === selectedProduct);
+  const product = products.find((p) => p.id === selectedProduct);
 
   if (product) {
     return <ProductDetail product={product} onBack={() => setSelectedProduct(null)} />;
