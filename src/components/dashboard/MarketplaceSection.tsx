@@ -4,7 +4,13 @@ import ProductCard from "./ProductCard";
 import ProductDetail from "./ProductDetail";
 import { Crown, Filter, TrendingUp, Tv, PackageSearch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+
+// ⚠️ SUBSTITUA PELAS SUAS CREDENCIAIS ⚠️
+const SUPABASE_URL = ydelgeezinawimqpgufk;
+const SUPABASE_ANON_KEY =
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+    .eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0
+    .szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU;
 
 type SubTab = "champions" | "ads" | "trending";
 
@@ -108,20 +114,25 @@ const MarketplaceSection = () => {
     async function fetchProducts() {
       try {
         setLoading(true);
-        console.log("🔍 Buscando produtos do Supabase...");
+        console.log("🔍 Buscando produtos via REST API...");
 
-        // @ts-ignore - Ignorando erro de tipagem do Supabase
-        const { data, error } = await supabase.from("products").select("*");
+        // Faz requisição direta para a API REST do Supabase
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*`, {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-        if (error) {
-          console.error("❌ Erro:", error);
-          throw error;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
+        const data = await response.json();
         console.log("✅ Dados recebidos:", data);
 
         if (data && data.length > 0) {
-          // Converte para o formato que o ProductCard espera
           const formattedProducts = data.map((p: any) => ({
             id: String(p.id),
             name: p.title,
@@ -129,7 +140,7 @@ const MarketplaceSection = () => {
             price: p.price,
             sellPrice: p.price,
             niche: p.category || p.niche || "general",
-            trendLevel: p.trendlevel || p.trendLevel || "stable",
+            trendLevel: p.trend_level || p.trendLevel || "stable",
             profitMargin: p.margin ? `${p.margin}%` : "30%",
             orders: String(p.sales || 0),
             source: p.supplier || "AliExpress",
