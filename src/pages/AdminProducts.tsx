@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 
-// URL direta do Supabase (mesma do Marketplace)
 const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0.szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU";
+
+async function getAuthToken() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.access_token;
+}
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
@@ -19,26 +25,31 @@ export default function AdminProducts() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Buscar produtos
   async function fetchProducts() {
     try {
+      const token = await getAuthToken();
       const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=id.desc`, {
         headers: {
           apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
         },
       });
       const data = await response.json();
       setProducts(data);
     } catch (err) {
-      console.error("Erro ao buscar:", err);
+      console.error("Error fetching products:", err);
     }
     setLoading(false);
   }
 
-  // Salvar produto
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    const token = await getAuthToken();
+    if (!token) {
+      alert("You need to be logged in to add products");
+      return;
+    }
 
     const productData = {
       title: form.title,
@@ -51,32 +62,39 @@ export default function AdminProducts() {
     };
 
     try {
+      let response;
       if (editingId) {
-        await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${editingId}`, {
+        response = await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${editingId}`, {
           method: "PATCH",
           headers: {
             apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(productData),
         });
-        alert("Produto atualizado!");
+        if (response.ok) alert("Product updated!");
       } else {
-        await fetch(`${SUPABASE_URL}/rest/v1/products`, {
+        response = await fetch(`${SUPABASE_URL}/rest/v1/products`, {
           method: "POST",
           headers: {
             apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(productData),
         });
-        alert("Produto adicionado!");
+        if (response.ok) alert("Product added!");
+      }
+
+      if (!response?.ok) {
+        const error = await response?.text();
+        console.error("Error response:", error);
+        alert("Error saving product. Please check if you are logged in.");
       }
     } catch (err) {
-      console.error("Erro:", err);
-      alert("Erro ao salvar produto");
+      console.error("Error:", err);
+      alert("Error saving product");
     }
 
     setForm({ title: "", price: "", image_url: "", category: "", supplier: "AliExpress", margin: "30", sales: "0" });
@@ -99,19 +117,32 @@ export default function AdminProducts() {
   }
 
   async function deleteProduct(id: string) {
-    if (confirm("Tem certeza que quer excluir este produto?")) {
-      try {
-        await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}`, {
-          method: "DELETE",
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        });
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    const token = await getAuthToken();
+    if (!token) {
+      alert("You need to be logged in to delete products");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}`, {
+        method: "DELETE",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        alert("Product deleted!");
         fetchProducts();
-      } catch (err) {
-        console.error("Erro ao deletar:", err);
+      } else {
+        alert("Error deleting product");
       }
+    } catch (err) {
+      console.error("Error deleting:", err);
+      alert("Error deleting product");
     }
   }
 
@@ -119,51 +150,46 @@ export default function AdminProducts() {
     fetchProducts();
   }, []);
 
-  if (loading) return <div className="p-8 text-center">Carregando produtos...</div>;
+  if (loading) return <div className="p-8 text-center">Loading products...</div>;
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Painel Admin - Produtos</h1>
+      <h1 className="text-3xl font-bold mb-6">Admin Panel - Products</h1>
 
-      {/* Formulário */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-8">
-        <h2 className="text-xl font-semibold mb-4">{editingId ? "Editar Produto" : "Novo Produto"}</h2>
+        <h2 className="text-xl font-semibold mb-4">{editingId ? "Edit Product" : "New Product"}</h2>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="text"
-            placeholder="Título"
-            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
+            placeholder="Title"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             required
           />
-
           <input
             type="number"
-            placeholder="Preço (€)"
+            placeholder="Price (€)"
             step="0.01"
-            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
             required
           />
-
           <input
             type="url"
-            placeholder="URL da Imagem (ex: https://picsum.photos/id/0/300/200)"
-            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
+            placeholder="Image URL"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={form.image_url}
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           />
-
           <input
             type="text"
-            placeholder="Categoria (ex: Eletrônicos, Moda, Casa)"
-            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
+            placeholder="Category"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           />
-
           <select
             className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={form.supplier}
@@ -174,26 +200,23 @@ export default function AdminProducts() {
             <option>TikTok Shop</option>
             <option>Amazon</option>
           </select>
-
           <input
             type="number"
-            placeholder="Margem (%)"
-            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
+            placeholder="Margin (%)"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={form.margin}
             onChange={(e) => setForm({ ...form, margin: e.target.value })}
           />
-
           <input
             type="number"
-            placeholder="Vendas"
-            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
+            placeholder="Sales"
+            className="p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={form.sales}
             onChange={(e) => setForm({ ...form, sales: e.target.value })}
           />
-
           <div className="flex gap-2 md:col-span-2">
             <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-              {editingId ? "Atualizar" : "Cadastrar"}
+              {editingId ? "Update" : "Add"}
             </button>
             {editingId && (
               <button
@@ -212,40 +235,39 @@ export default function AdminProducts() {
                 }}
                 className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
               >
-                Cancelar
+                Cancel
               </button>
             )}
           </div>
         </form>
       </div>
 
-      {/* Lista de produtos */}
-      <h2 className="text-xl font-semibold mb-4">Produtos Cadastrados ({products.length})</h2>
+      <h2 className="text-xl font-semibold mb-4">Registered Products ({products.length})</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {products.map((p: any) => (
           <div key={p.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800">
             <img
-              src={p.image_url || "https://via.placeholder.com/300x200?text=Sem+Imagem"}
+              src={p.image_url || "https://via.placeholder.com/300"}
               alt={p.title}
               className="w-full h-40 object-cover rounded mb-2"
             />
-            <h3 className="font-bold text-gray-900 dark:text-white">{p.title}</h3>
-            <p className="text-green-600 font-semibold">€{p.price}</p>
+            <h3 className="font-bold">{p.title}</h3>
+            <p className="text-green-600">€{p.price}</p>
             <p className="text-sm text-gray-500">
-              Margem: {p.margin}% | Vendas: {p.sales}
+              Margin: {p.margin}% | Sales: {p.sales}
             </p>
             <div className="flex gap-2 mt-2">
               <button
                 onClick={() => editProduct(p)}
                 className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
               >
-                Editar
+                Edit
               </button>
               <button
                 onClick={() => deleteProduct(p.id)}
                 className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
               >
-                Excluir
+                Delete
               </button>
             </div>
           </div>
