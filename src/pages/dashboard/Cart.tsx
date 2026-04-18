@@ -87,10 +87,13 @@ const Cart = () => {
 
       if (response.ok) {
         console.log("Produto removido com sucesso");
-        // Limpa os estados e recarrega
-        setCartItems([]);
-        setProducts([]);
-        await fetchCart();
+
+        // Remove localmente - SEM FLASH, SEM RECARREGAR
+        const updatedCartItems = cartItems.filter((item) => item.product_id !== productId);
+        setCartItems(updatedCartItems);
+
+        const updatedProducts = products.filter((product) => product.id !== productId);
+        setProducts(updatedProducts);
       } else {
         const errorText = await response.text();
         console.error("Erro ao excluir:", errorText);
@@ -107,16 +110,26 @@ const Cart = () => {
     if (!user) return;
 
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${productId}`, {
-        method: "PATCH",
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${productId}`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ quantity: newQuantity }),
         },
-        body: JSON.stringify({ quantity: newQuantity }),
-      });
-      await fetchCart();
+      );
+
+      if (response.ok) {
+        // Atualiza localmente
+        const updatedCartItems = cartItems.map((item) =>
+          item.product_id === productId ? { ...item, quantity: newQuantity } : item,
+        );
+        setCartItems(updatedCartItems);
+      }
     } catch (err) {
       console.error("Erro ao atualizar quantidade:", err);
     }
