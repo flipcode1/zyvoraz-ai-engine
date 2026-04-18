@@ -32,9 +32,6 @@ const Cart = () => {
         return;
       }
 
-      console.log("Buscando carrinho para usuário:", user.id);
-
-      // Buscar itens do carrinho
       const cartResponse = await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&select=*`, {
         headers: {
           apikey: SUPABASE_ANON_KEY,
@@ -42,10 +39,8 @@ const Cart = () => {
         },
       });
       const cartData = await cartResponse.json();
-      console.log("Itens do carrinho:", cartData);
       setCartItems(cartData);
 
-      // Buscar detalhes dos produtos
       if (cartData && cartData.length > 0) {
         const productIds = cartData.map((item: any) => item.product_id).join(",");
         const productsResponse = await fetch(`${SUPABASE_URL}/rest/v1/products?id=in.(${productIds})&select=*`, {
@@ -60,7 +55,7 @@ const Cart = () => {
         setProducts([]);
       }
     } catch (err) {
-      console.error("Erro ao buscar carrinho:", err);
+      console.error("Error fetching cart:", err);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -72,8 +67,6 @@ const Cart = () => {
     if (!user) return;
 
     try {
-      console.log("Removendo produto:", productId);
-
       const response = await fetch(
         `${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${productId}`,
         {
@@ -86,20 +79,13 @@ const Cart = () => {
       );
 
       if (response.ok) {
-        console.log("Produto removido com sucesso");
-
-        // Remove localmente - SEM FLASH, SEM RECARREGAR
         const updatedCartItems = cartItems.filter((item) => item.product_id !== productId);
         setCartItems(updatedCartItems);
-
         const updatedProducts = products.filter((product) => product.id !== productId);
         setProducts(updatedProducts);
-      } else {
-        const errorText = await response.text();
-        console.error("Erro ao excluir:", errorText);
       }
     } catch (err) {
-      console.error("Erro ao remover:", err);
+      console.error("Error removing item:", err);
     }
   }
 
@@ -124,18 +110,16 @@ const Cart = () => {
       );
 
       if (response.ok) {
-        // Atualiza localmente
         const updatedCartItems = cartItems.map((item) =>
           item.product_id === productId ? { ...item, quantity: newQuantity } : item,
         );
         setCartItems(updatedCartItems);
       }
     } catch (err) {
-      console.error("Erro ao atualizar quantidade:", err);
+      console.error("Error updating quantity:", err);
     }
   }
 
-  // Calcular total
   const total = products.reduce((sum, product) => {
     const cartItem = cartItems.find((item) => item.product_id === product.id);
     const quantity = cartItem?.quantity || 1;
@@ -145,7 +129,7 @@ const Cart = () => {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <div className="animate-pulse">Carregando carrinho...</div>
+        <div className="animate-pulse">Loading cart...</div>
       </div>
     );
   }
@@ -158,28 +142,27 @@ const Cart = () => {
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft size={20} />
-          Voltar às compras
+          Back to Shopping
         </button>
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <ShoppingCart size={28} className="text-primary" />
-          Meu Carrinho
+          My Cart
         </h1>
       </div>
 
       {products.length === 0 ? (
         <div className="text-center py-20">
           <ShoppingCart size={60} className="mx-auto text-muted-foreground/40 mb-4" />
-          <p className="text-muted-foreground">Seu carrinho está vazio</p>
+          <p className="text-muted-foreground">Your cart is empty</p>
           <button
             onClick={() => navigate("/dashboard/marketplace")}
             className="mt-4 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
           >
-            Continuar comprando
+            Continue Shopping
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Lista de produtos */}
           <div className="lg:col-span-2 space-y-4">
             {products.map((product) => {
               const cartItem = cartItems.find((item) => item.product_id === product.id);
@@ -227,17 +210,16 @@ const Cart = () => {
             })}
           </div>
 
-          {/* Resumo do pedido */}
           <div className="glass-card p-6 h-fit">
-            <h2 className="text-xl font-bold mb-4">Resumo do Pedido</h2>
+            <h2 className="text-xl font-bold mb-4">Order Summary</h2>
             <div className="space-y-2 border-b pb-4">
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span>€{total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Frete</span>
-                <span>Grátis</span>
+                <span>Shipping</span>
+                <span>Free</span>
               </div>
             </div>
             <div className="flex justify-between mt-4 text-lg font-bold">
@@ -245,10 +227,10 @@ const Cart = () => {
               <span className="text-primary">€{total.toFixed(2)}</span>
             </div>
             <button
-              onClick={() => alert("Funcionalidade de checkout em desenvolvimento!")}
+              onClick={() => alert("Checkout functionality in development!")}
               className="w-full mt-6 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
             >
-              Finalizar Compra
+              Checkout
             </button>
           </div>
         </div>
