@@ -87,6 +87,12 @@ const Favorites = () => {
     }
   }
 
+  // Função para remover produto da lista localmente (quando desfavoritar)
+  const removeFromFavorites = (productId: string) => {
+    console.log("Removendo da lista:", productId);
+    setFavoriteProducts((prev) => prev.filter((p) => p.id !== productId));
+  };
+
   const product = favoriteProducts.find((p) => p.id === selectedProduct);
 
   if (product) {
@@ -96,7 +102,7 @@ const Favorites = () => {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <div className="animate-pulse">Carregando favoritos...</div>
+        <div className="animate-pulse">Loading favorites...</div>
       </div>
     );
   }
@@ -109,31 +115,36 @@ const Favorites = () => {
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft size={20} />
-          Voltar ao Marketplace
+          Back to Marketplace
         </button>
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Heart size={28} className="fill-red-500 text-red-500" />
-          Meus Favoritos
+          My Favorites
         </h1>
       </div>
 
       {favoriteProducts.length === 0 ? (
         <div className="text-center py-20">
           <Heart size={60} className="mx-auto text-muted-foreground/40 mb-4" />
-          <p className="text-muted-foreground">Você ainda não tem produtos favoritados</p>
+          <p className="text-muted-foreground">You don't have any favorite products yet</p>
           <button
             onClick={() => navigate("/dashboard/marketplace")}
             className="mt-4 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
           >
-            Explorar Marketplace
+            Explore Marketplace
           </button>
         </div>
       ) : (
         <>
-          <p className="text-muted-foreground mb-4">{favoriteProducts.length} produto(s) favoritado(s)</p>
+          <p className="text-muted-foreground mb-4">{favoriteProducts.length} favorite product(s)</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {favoriteProducts.map((product) => (
-              <ProductCard key={product.id} product={product} onClick={() => setSelectedProduct(product.id)} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onClick={() => setSelectedProduct(product.id)}
+                onFavoriteRemoved={() => removeFromFavorites(product.id)}
+              />
             ))}
           </div>
         </>
