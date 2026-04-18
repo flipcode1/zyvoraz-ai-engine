@@ -1,5 +1,5 @@
 import { CHAMPION_PRODUCTS, NICHES } from "@/lib/mock-data";
-import { TrendingUp, ShoppingCart, DollarSign, Heart } from "lucide-react";
+import { TrendingUp, ShoppingCart, DollarSign, Heart, Plus, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,12 +25,9 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
   };
 
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isInCart, setIsInCart] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Verificar se o produto está nos favoritos ao carregar
-  useEffect(() => {
-    checkIfFavorite();
-  }, [product.id]);
+  const [cartLoading, setCartLoading] = useState(false);
 
   async function getCurrentUser() {
     const {
@@ -39,12 +36,16 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
     return user;
   }
 
+  // Verificar favorito
+  useEffect(() => {
+    checkIfFavorite();
+    checkIfInCart();
+  }, [product.id]);
+
   async function checkIfFavorite() {
     try {
       const user = await getCurrentUser();
       if (!user) return;
-
-      console.log("Verificando favorito para produto:", product.id, "usuário:", user.id);
 
       const response = await fetch(
         `${SUPABASE_URL}/rest/v1/user_favorites?user_id=eq.${user.id}&product_id=eq.${product.id}&select=id`,
@@ -55,12 +56,31 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
           },
         },
       );
-
       const data = await response.json();
-      console.log("Resultado da busca:", data);
       setIsFavorite(data && data.length > 0);
     } catch (err) {
       console.error("Erro ao verificar favorito:", err);
+    }
+  }
+
+  async function checkIfInCart() {
+    try {
+      const user = await getCurrentUser();
+      if (!user) return;
+
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${product.id}&select=id`,
+        {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        },
+      );
+      const data = await response.json();
+      setIsInCart(data && data.length > 0);
+    } catch (err) {
+      console.error("Erro ao verificar carrinho:", err);
     }
   }
 
@@ -77,27 +97,16 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
 
     try {
       if (isFavorite) {
-        // Remover dos favoritos
-        const response = await fetch(
-          `${SUPABASE_URL}/rest/v1/user_favorites?user_id=eq.${user.id}&product_id=eq.${product.id}`,
-          {
-            method: "DELETE",
-            headers: {
-              apikey: SUPABASE_ANON_KEY,
-              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            },
+        await fetch(`${SUPABASE_URL}/rest/v1/user_favorites?user_id=eq.${user.id}&product_id=eq.${product.id}`, {
+          method: "DELETE",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           },
-        );
-
-        if (response.ok) {
-          setIsFavorite(false);
-          console.log("Favorito removido");
-        } else {
-          console.error("Erro ao remover:", await response.text());
-        }
+        });
+        setIsFavorite(false);
       } else {
-        // Adicionar aos favoritos
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_favorites`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/user_favorites`, {
           method: "POST",
           headers: {
             apikey: SUPABASE_ANON_KEY,
@@ -109,21 +118,62 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
             product_id: Number(product.id),
           }),
         });
-
-        if (response.ok) {
-          setIsFavorite(true);
-          console.log("Favorito adicionado");
-        } else {
-          const error = await response.text();
-          console.error("Erro ao adicionar:", error);
-          alert("Erro ao salvar favorito. Tente novamente.");
-        }
+        setIsFavorite(true);
       }
     } catch (err) {
       console.error("Erro ao favoritar:", err);
       alert("Erro ao salvar favorito. Tente novamente.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function addToCart(e: React.MouseEvent) {
+    e.stopPropagation();
+
+    const user = await getCurrentUser();
+    if (!user) {
+      alert("Faça login para adicionar ao carrinho");
+      return;
+    }
+
+    setCartLoading(true);
+
+    try {
+      if (isInCart) {
+        // Se já está no carrinho, remove
+        await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${product.id}`, {
+          method: "DELETE",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        });
+        setIsInCart(false);
+        alert("Produto removido do carrinho!");
+      } else {
+        // Adiciona ao carrinho
+        await fetch(`${SUPABASE_URL}/rest/v1/user_cart`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            product_id: Number(product.id),
+            quantity: 1,
+          }),
+        });
+        setIsInCart(true);
+        alert("Produto adicionado ao carrinho!");
+      }
+    } catch (err) {
+      console.error("Erro ao adicionar ao carrinho:", err);
+      alert("Erro ao adicionar ao carrinho. Tente novamente.");
+    } finally {
+      setCartLoading(false);
     }
   }
 
@@ -142,6 +192,15 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
         className="absolute top-2 left-2 z-10 bg-black/60 backdrop-blur-sm rounded-full p-1.5 hover:bg-black/80 transition-all"
       >
         <Heart size={18} className={isFavorite ? "fill-red-500 text-red-500" : "text-white"} />
+      </button>
+
+      {/* Botão do Carrinho */}
+      <button
+        onClick={addToCart}
+        disabled={cartLoading}
+        className="absolute bottom-2 right-2 z-10 bg-primary/90 backdrop-blur-sm rounded-full p-2 hover:bg-primary transition-all"
+      >
+        {isInCart ? <Check size={16} className="text-white" /> : <ShoppingCart size={16} className="text-white" />}
       </button>
 
       {/* Image */}
@@ -163,7 +222,7 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
       {/* Content */}
       <div className="p-4 space-y-3">
         {/* Title */}
-        <h3 className="font-semibold line-clamp-2 min-w-0">{product.name}</h3>
+        <h3 className="font-semibold line-clamp-2 min-w-0 pr-8">{product.name}</h3>
 
         {/* Badges */}
         <div className="flex items-center gap-2 flex-wrap">
