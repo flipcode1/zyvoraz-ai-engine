@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
 const SUPABASE_ANON_KEY =
