@@ -18,14 +18,6 @@ const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0.szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU";
 
-// Função para pegar o usuário logado
-async function getCurrentUser() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
-
 const ProductCard = ({ product, onClick }: { product: Product; onClick: () => void }) => {
   const trend = TREND_CONFIG[product.trendLevel as keyof typeof TREND_CONFIG] ?? {
     label: product.trendLevel,
@@ -41,20 +33,28 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
   }, [product.id]);
 
   async function checkIfFavorite() {
-    const user = await getCurrentUser();
-    if (!user) return;
-
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/user_favorites?user_id=eq.${user.id}&product_id=eq.${product.id}&select=id`,
-        {
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        },
-      );
-      const data = await response.json();
+      // Pega o usuário atual
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      console.log("Verificando favorito para produto:", product.id, "usuário:", user.id);
+
+      // Busca na tabela de favoritos
+      const { data, error } = await supabase
+        .from("user_favorites")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("product_id", product.id);
+
+      if (error) {
+        console.error("Erro ao buscar favorito:", error);
+        return;
+      }
+
+      console.log("Resultado da busca:", data);
       setIsFavorite(data && data.length > 0);
     } catch (err) {
       console.error("Erro ao verificar favorito:", err);
@@ -64,7 +64,9 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
   async function toggleFavorite(e: React.MouseEvent) {
     e.stopPropagation(); // Evita abrir o produto ao clicar no coração
 
-    const user = await getCurrentUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       alert("Faça login para favoritar produtos");
       return;
@@ -75,32 +77,29 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
     try {
       if (isFavorite) {
         // Remover dos favoritos
-        await fetch(`${SUPABASE_URL}/rest/v1/user_favorites?user_id=eq.${user.id}&product_id=eq.${product.id}`, {
-          method: "DELETE",
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        });
+        const { error } = await supabase
+          .from("user_favorites")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", product.id);
+
+        if (error) throw error;
         setIsFavorite(false);
+        console.log("Favorito removido");
       } else {
         // Adicionar aos favoritos
-        await fetch(`${SUPABASE_URL}/rest/v1/user_favorites`, {
-          method: "POST",
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            product_id: product.id,
-          }),
+        const { error } = await supabase.from("user_favorites").insert({
+          user_id: user.id,
+          product_id: product.id,
         });
+
+        if (error) throw error;
         setIsFavorite(true);
+        console.log("Favorito adicionado");
       }
     } catch (err) {
       console.error("Erro ao favoritar:", err);
+      alert("Erro ao salvar favorito. Tente novamente.");
     } finally {
       setLoading(false);
     }
