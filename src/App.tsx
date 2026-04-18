@@ -20,6 +20,7 @@ import Products from "./pages/dashboard/Products";
 import CustomerSupport from "./pages/dashboard/CustomerSupport";
 import Messages from "./pages/dashboard/Messages";
 import AdminProducts from "./pages/AdminProducts";
+import Cart from "./pages/dashboard/Cart";
 
 const queryClient = new QueryClient();
 
@@ -59,8 +60,8 @@ const App = () => (
               <Route path="safe-place" element={<SafePlaceSection />} />
               <Route path="support" element={<CustomerSupport />} />
               <Route path="messages" element={<Messages />} />
-              {/* 👇 ADMIN AGORA DENTRO DO DASHBOARD */}
               <Route path="admin" element={<AdminProducts />} />
+              <Route path="cart" element={<Cart />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
