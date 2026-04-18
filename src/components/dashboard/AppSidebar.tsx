@@ -26,6 +26,7 @@ import {
   LogOut,
   Plus,
   Settings,
+  ShoppingCart,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +39,7 @@ const menuItems = [
   { title: "Safe Place", path: "/dashboard/safe-place", icon: Bookmark },
   { title: "Customer Support", path: "/dashboard/support", icon: HeadphonesIcon },
   { title: "Messages", path: "/dashboard/messages", icon: MessageSquare },
+  { title: "Carrinho", path: "/dashboard/cart", icon: ShoppingCart },
   { title: "Admin", path: "/dashboard/admin", icon: Settings },
 ];
 
