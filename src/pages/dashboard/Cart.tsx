@@ -1,183 +1,222 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { ShoppingCart, Trash2, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-interface CartItem {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-  sellPrice: number;
-  quantity: number;
-}
-
-const CART_STORAGE_KEY = "zyvoraz_cart";
+const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0.szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU";
 
 const Cart = () => {
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const [items, setItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
-    if (stored) {
-      try {
-        setItems(JSON.parse(stored));
-      } catch {
-        setItems([]);
-      }
-    }
+    fetchCart();
   }, []);
 
-  const persist = (next: CartItem[]) => {
-    setItems(next);
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(next));
-  };
+  async function getCurrentUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user;
+  }
 
-  const updateQuantity = (id: string, delta: number) => {
-    const next = items
-      .map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
-      )
-      .filter((item) => item.quantity > 0);
-    persist(next);
-  };
+  async function fetchCart() {
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        navigate("/login");
+        return;
+      }
 
-  const removeItem = (id: string) => {
-    persist(items.filter((item) => item.id !== id));
-    toast.success("Item removed from cart");
-  };
+      // Buscar itens do carrinho
+      const cartResponse = await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&select=*`, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+      const cartData = await cartResponse.json();
+      setCartItems(cartData);
 
-  const clearCart = () => {
-    persist([]);
-    toast.success("Cart cleared");
-  };
-
-  const checkout = () => {
-    if (items.length === 0) {
-      toast.error("Your cart is empty");
-      return;
+      // Buscar detalhes dos produtos
+      if (cartData.length > 0) {
+        const productIds = cartData.map((item: any) => item.product_id).join(",");
+        const productsResponse = await fetch(`${SUPABASE_URL}/rest/v1/products?id=in.(${productIds})&select=*`, {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        });
+        const productsData = await productsResponse.json();
+        setProducts(productsData);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar carrinho:", err);
+    } finally {
+      setLoading(false);
     }
-    toast.success("Checkout initiated");
-  };
+  }
 
-  const subtotal = items.reduce((sum, item) => sum + item.sellPrice * item.quantity, 0);
-  const cost = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const profit = subtotal - cost;
+  async function removeFromCart(productId: number) {
+    const user = await getCurrentUser();
+    if (!user) return;
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${productId}`, {
+        method: "DELETE",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+      fetchCart(); // Recarrega o carrinho
+    } catch (err) {
+      console.error("Erro ao remover:", err);
+    }
+  }
+
+  async function updateQuantity(productId: number, newQuantity: number) {
+    if (newQuantity < 1) return;
+
+    const user = await getCurrentUser();
+    if (!user) return;
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${productId}`, {
+        method: "PATCH",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+      fetchCart(); // Recarrega o carrinho
+    } catch (err) {
+      console.error("Erro ao atualizar quantidade:", err);
+    }
+  }
+
+  // Calcular total
+  const total = products.reduce((sum, product) => {
+    const cartItem = cartItems.find((item) => item.product_id === product.id);
+    const quantity = cartItem?.quantity || 1;
+    return sum + product.price * quantity;
+  }, 0);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center">
+        <div className="animate-pulse">Carregando carrinho...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft size={18} />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <ShoppingCart size={24} className="text-primary" />
-              Your Cart
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {items.length} {items.length === 1 ? "item" : "items"}
-            </p>
-          </div>
-        </div>
-        {items.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearCart}>
-            Clear all
-          </Button>
-        )}
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate("/dashboard/marketplace")}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft size={20} />
+          Voltar às compras
+        </button>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <ShoppingCart size={28} className="text-primary" />
+          Meu Carrinho
+        </h1>
       </div>
 
-      {items.length === 0 ? (
-        <Card className="p-12 text-center">
-          <ShoppingCart size={48} className="mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold mb-2">Your cart is empty</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Browse the marketplace to add winning products.
-          </p>
-          <Button onClick={() => navigate("/dashboard/marketplace")} className="gradient-bg">
-            Explore Marketplace
-          </Button>
-        </Card>
+      {products.length === 0 ? (
+        <div className="text-center py-20">
+          <ShoppingCart size={60} className="mx-auto text-muted-foreground/40 mb-4" />
+          <p className="text-muted-foreground">Seu carrinho está vazio</p>
+          <button
+            onClick={() => navigate("/dashboard/marketplace")}
+            className="mt-4 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
+          >
+            Continuar comprando
+          </button>
+        </div>
       ) : (
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-3">
-            {items.map((item) => (
-              <Card key={item.id} className="p-4 flex gap-4 items-center">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-20 h-20 rounded-md object-cover bg-muted"
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{item.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Cost ${item.price.toFixed(2)} · Sell ${item.sellPrice.toFixed(2)}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      onClick={() => updateQuantity(item.id, -1)}
-                    >
-                      <Minus size={14} />
-                    </Button>
-                    <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      onClick={() => updateQuantity(item.id, 1)}
-                    >
-                      <Plus size={14} />
-                    </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Lista de produtos */}
+          <div className="lg:col-span-2 space-y-4">
+            {products.map((product) => {
+              const cartItem = cartItems.find((item) => item.product_id === product.id);
+              const quantity = cartItem?.quantity || 1;
+
+              return (
+                <div key={product.id} className="glass-card p-4 flex gap-4">
+                  <img
+                    src={product.image_url || "https://placehold.co/100x100"}
+                    alt={product.title}
+                    className="w-24 h-24 object-cover rounded"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{product.title}</h3>
+                    <p className="text-green-600 font-bold">€{product.price}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(product.id, quantity - 1)}
+                          className="bg-muted px-2 py-1 rounded hover:bg-muted/80"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center">{quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(product.id, quantity + 1)}
+                          className="bg-muted px-2 py-1 rounded hover:bg-muted/80"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => removeFromCart(product.id)}
+                        className="text-red-500 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold">€{(product.price * quantity).toFixed(2)}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-primary">
-                    ${(item.sellPrice * item.quantity).toFixed(2)}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => removeItem(item.id)}
-                    className="text-muted-foreground hover:text-destructive mt-2"
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              </Card>
-            ))}
+              );
+            })}
           </div>
 
-          <Card className="p-5 h-fit space-y-4">
-            <h2 className="font-semibold">Order Summary</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Total cost</span>
-                <span>${cost.toFixed(2)}</span>
-              </div>
+          {/* Resumo do pedido */}
+          <div className="glass-card p-6 h-fit">
+            <h2 className="text-xl font-bold mb-4">Resumo do Pedido</h2>
+            <div className="space-y-2 border-b pb-4">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>€{total.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-primary">
-                <span>Estimated profit</span>
-                <span>${profit.toFixed(2)}</span>
+              <div className="flex justify-between">
+                <span>Frete</span>
+                <span>Grátis</span>
               </div>
             </div>
-            <Separator />
-            <div className="flex justify-between font-bold text-lg">
+            <div className="flex justify-between mt-4 text-lg font-bold">
               <span>Total</span>
-              <span className="text-primary">${subtotal.toFixed(2)}</span>
+              <span className="text-primary">€{total.toFixed(2)}</span>
             </div>
-            <Button onClick={checkout} className="w-full gradient-bg glow-shadow">
-              Checkout
-            </Button>
-          </Card>
+            <button
+              onClick={() => alert("Funcionalidade de checkout em desenvolvimento!")}
+              className="w-full mt-6 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+            >
+              Finalizar Compra
+            </button>
+          </div>
         </div>
       )}
     </div>
