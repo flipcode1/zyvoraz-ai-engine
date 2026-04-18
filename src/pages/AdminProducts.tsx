@@ -35,10 +35,24 @@ export default function AdminProducts() {
           Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
         },
       });
+
+      if (!response.ok) {
+        console.error("HTTP error:", response.status);
+        setProducts([]);
+        return;
+      }
+
       const data = await response.json();
-      setProducts(data);
+
+      if (Array.isArray(data)) {
+        setProducts(data);
+      } else {
+        console.error("Data is not an array:", data);
+        setProducts([]);
+      }
     } catch (err) {
       console.error("Error fetching products:", err);
+      setProducts([]);
     }
     setLoading(false);
   }
@@ -245,34 +259,40 @@ export default function AdminProducts() {
 
       <h2 className="text-xl font-semibold mb-4">Registered Products ({products.length})</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((p: any) => (
-          <div key={p.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800">
-            <img
-              src={p.image_url || "https://via.placeholder.com/300"}
-              alt={p.title}
-              className="w-full h-40 object-cover rounded mb-2"
-            />
-            <h3 className="font-bold">{p.title}</h3>
-            <p className="text-green-600">€{p.price}</p>
-            <p className="text-sm text-gray-500">
-              Margin: {p.margin}% | Sales: {p.sales}
-            </p>
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => editProduct(p)}
-                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => deleteProduct(p.id)}
-                className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-              >
-                Delete
-              </button>
+        {products && products.length > 0 ? (
+          products.map((p: any) => (
+            <div key={p.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800">
+              <img
+                src={p.image_url || "https://via.placeholder.com/300"}
+                alt={p.title}
+                className="w-full h-40 object-cover rounded mb-2"
+              />
+              <h3 className="font-bold">{p.title}</h3>
+              <p className="text-green-600">€{p.price}</p>
+              <p className="text-sm text-gray-500">
+                Margin: {p.margin}% | Sales: {p.sales}
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => editProduct(p)}
+                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteProduct(p.id)}
+                  className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-10 text-muted-foreground">
+            No products found. Click "Add" to create your first product.
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
