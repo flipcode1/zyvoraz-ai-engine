@@ -32,28 +32,31 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
     checkIfFavorite();
   }, [product.id]);
 
+  async function getCurrentUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user;
+  }
+
   async function checkIfFavorite() {
     try {
-      // Pega o usuário atual
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) return;
 
       console.log("Verificando favorito para produto:", product.id, "usuário:", user.id);
 
-      // Busca na tabela de favoritos
-      const { data, error } = await supabase
-        .from("user_favorites")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("product_id", product.id);
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_favorites?user_id=eq.${user.id}&product_id=eq.${product.id}&select=id`,
+        {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        },
+      );
 
-      if (error) {
-        console.error("Erro ao buscar favorito:", error);
-        return;
-      }
-
+      const data = await response.json();
       console.log("Resultado da busca:", data);
       setIsFavorite(data && data.length > 0);
     } catch (err) {
@@ -62,11 +65,9 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
   }
 
   async function toggleFavorite(e: React.MouseEvent) {
-    e.stopPropagation(); // Evita abrir o produto ao clicar no coração
+    e.stopPropagation();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) {
       alert("Faça login para favoritar produtos");
       return;
@@ -77,25 +78,46 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
     try {
       if (isFavorite) {
         // Remover dos favoritos
-        const { error } = await supabase
-          .from("user_favorites")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("product_id", product.id);
+        const response = await fetch(
+          `${SUPABASE_URL}/rest/v1/user_favorites?user_id=eq.${user.id}&product_id=eq.${product.id}`,
+          {
+            method: "DELETE",
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          },
+        );
 
-        if (error) throw error;
-        setIsFavorite(false);
-        console.log("Favorito removido");
+        if (response.ok) {
+          setIsFavorite(false);
+          console.log("Favorito removido");
+        } else {
+          console.error("Erro ao remover:", await response.text());
+        }
       } else {
         // Adicionar aos favoritos
-        const { error } = await supabase.from("user_favorites").insert({
-          user_id: user.id,
-          product_id: product.id,
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_favorites`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            product_id: Number(product.id),
+          }),
         });
 
-        if (error) throw error;
-        setIsFavorite(true);
-        console.log("Favorito adicionado");
+        if (response.ok) {
+          setIsFavorite(true);
+          console.log("Favorito adicionado");
+        } else {
+          const error = await response.text();
+          console.error("Erro ao adicionar:", error);
+          alert("Erro ao salvar favorito. Tente novamente.");
+        }
       }
     } catch (err) {
       console.error("Erro ao favoritar:", err);
