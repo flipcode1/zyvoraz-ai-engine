@@ -32,6 +32,8 @@ const Cart = () => {
         return;
       }
 
+      console.log("Buscando carrinho para usuário:", user.id);
+
       // Buscar itens do carrinho
       const cartResponse = await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&select=*`, {
         headers: {
@@ -40,10 +42,11 @@ const Cart = () => {
         },
       });
       const cartData = await cartResponse.json();
+      console.log("Itens do carrinho:", cartData);
       setCartItems(cartData);
 
       // Buscar detalhes dos produtos
-      if (cartData.length > 0) {
+      if (cartData && cartData.length > 0) {
         const productIds = cartData.map((item: any) => item.product_id).join(",");
         const productsResponse = await fetch(`${SUPABASE_URL}/rest/v1/products?id=in.(${productIds})&select=*`, {
           headers: {
@@ -53,9 +56,12 @@ const Cart = () => {
         });
         const productsData = await productsResponse.json();
         setProducts(productsData);
+      } else {
+        setProducts([]);
       }
     } catch (err) {
       console.error("Erro ao buscar carrinho:", err);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -66,14 +72,29 @@ const Cart = () => {
     if (!user) return;
 
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${productId}`, {
-        method: "DELETE",
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      console.log("Removendo produto:", productId);
+
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${productId}`,
+        {
+          method: "DELETE",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
         },
-      });
-      fetchCart(); // Recarrega o carrinho
+      );
+
+      if (response.ok) {
+        console.log("Produto removido com sucesso");
+        // Limpa os estados e recarrega
+        setCartItems([]);
+        setProducts([]);
+        await fetchCart();
+      } else {
+        const errorText = await response.text();
+        console.error("Erro ao excluir:", errorText);
+      }
     } catch (err) {
       console.error("Erro ao remover:", err);
     }
@@ -95,7 +116,7 @@ const Cart = () => {
         },
         body: JSON.stringify({ quantity: newQuantity }),
       });
-      fetchCart(); // Recarrega o carrinho
+      await fetchCart();
     } catch (err) {
       console.error("Erro ao atualizar quantidade:", err);
     }
