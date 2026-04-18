@@ -38,10 +38,10 @@ const menuItems = [
   { title: "Sourcing Request", path: "/dashboard/sourcing", icon: Search },
   { title: "Products", path: "/dashboard/products", icon: Package },
   { title: "Safe Place", path: "/dashboard/safe-place", icon: Bookmark },
-  { title: "Favoritos", path: "/dashboard/favorites", icon: Heart },
+  { title: "Favorites", path: "/dashboard/favorites", icon: Heart },
   { title: "Customer Support", path: "/dashboard/support", icon: HeadphonesIcon },
   { title: "Messages", path: "/dashboard/messages", icon: MessageSquare },
-  { title: "Carrinho", path: "/dashboard/cart", icon: ShoppingCart },
+  { title: "Cart", path: "/dashboard/cart", icon: ShoppingCart },
   { title: "Admin", path: "/dashboard/admin", icon: Settings },
 ];
 
