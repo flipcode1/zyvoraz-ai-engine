@@ -164,7 +164,7 @@ const Cart = () => {
                 <span>Subtotal</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-green-500">
+              <div className="flex justify-between text-primary">
                 <span>Estimated profit</span>
                 <span>${profit.toFixed(2)}</span>
               </div>
