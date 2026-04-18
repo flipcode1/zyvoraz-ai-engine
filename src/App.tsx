@@ -21,6 +21,7 @@ import CustomerSupport from "./pages/dashboard/CustomerSupport";
 import Messages from "./pages/dashboard/Messages";
 import AdminProducts from "./pages/AdminProducts";
 import Cart from "./pages/dashboard/Cart";
+import Favorites from "./pages/dashboard/Favorites";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="messages" element={<Messages />} />
               <Route path="admin" element={<AdminProducts />} />
               <Route path="cart" element={<Cart />} />
+              <Route path="favorites" element={<Favorites />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
