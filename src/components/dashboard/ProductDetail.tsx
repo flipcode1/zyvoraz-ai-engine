@@ -1,10 +1,25 @@
 import { useState, useMemo } from "react";
 import { CHAMPION_PRODUCTS, generateTrendData, generateAIProductPage } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bookmark, Sparkles, TrendingUp, Users, CheckCircle, ExternalLink, Zap } from "lucide-react";
+import {
+  ArrowLeft,
+  Bookmark,
+  Sparkles,
+  TrendingUp,
+  Users,
+  CheckCircle,
+  ExternalLink,
+  Zap,
+  Facebook,
+  Instagram,
+  Mail,
+  Copy,
+  Check,
+} from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { generateMarketingCopy, MarketingCopies } from "@/lib/copyGenerator";
 
 type Product = (typeof CHAMPION_PRODUCTS)[0];
 
@@ -24,6 +39,10 @@ const ProductDetail = ({ product, onBack }: { product: Product; onBack: () => vo
     }
   });
 
+  const [generatingCopy, setGeneratingCopy] = useState(false);
+  const [copies, setCopies] = useState<MarketingCopies | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
   const trendData = useMemo(() => generateTrendData(), [product.id]);
   const aiPage = useMemo(() => generateAIProductPage(product), [product.id]);
   const trend = TREND_CONFIG[product.trendLevel as keyof typeof TREND_CONFIG];
@@ -41,6 +60,21 @@ const ProductDetail = ({ product, onBack }: { product: Product; onBack: () => vo
     } catch {
       toast.error("Could not save product. Please try again.");
     }
+  };
+
+  const handleGenerateCopy = async () => {
+    setGeneratingCopy(true);
+    const generated = await generateMarketingCopy(product.name, product.description, product.niche);
+    setCopies(generated);
+    setGeneratingCopy(false);
+    toast.success("AI marketing copy generated!");
+  };
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success("Copied to clipboard!");
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   const profit = (product.sellPrice - product.price).toFixed(2);
@@ -76,7 +110,6 @@ const ProductDetail = ({ product, onBack }: { product: Product; onBack: () => vo
 
         {/* Info */}
         <div className="space-y-4">
-          {/* Title + trend badge */}
           <div className="flex items-start gap-3 flex-wrap">
             <h1 className="font-display text-3xl font-bold flex-1">{product.name}</h1>
             {trend && (
@@ -88,7 +121,6 @@ const ProductDetail = ({ product, onBack }: { product: Product; onBack: () => vo
 
           <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
 
-          {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Buy Price", value: `$${product.price}`, color: "" },
@@ -105,7 +137,6 @@ const ProductDetail = ({ product, onBack }: { product: Product; onBack: () => vo
             ))}
           </div>
 
-          {/* Target Audience */}
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-2">
               <Users size={15} className="text-primary" />
@@ -134,8 +165,98 @@ const ProductDetail = ({ product, onBack }: { product: Product; onBack: () => vo
               </Button>
             )}
           </div>
+
+          {/* AI Marketing Copy Button */}
+          <Button onClick={handleGenerateCopy} disabled={generatingCopy} className="w-full gradient-bg glow-shadow">
+            <Sparkles size={16} className="mr-2" />
+            {generatingCopy ? "AI is thinking..." : "✨ AI Marketing Copy"}
+          </Button>
         </div>
       </div>
+
+      {/* AI Generated Copies */}
+      {copies && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-5 border-primary/30"
+        >
+          <h3 className="font-display font-bold mb-4 flex items-center gap-2">
+            <Sparkles size={18} className="text-primary" />
+            AI-Generated Marketing Copies
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Facebook */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Facebook size={16} className="text-blue-500" />
+                  <span className="font-semibold text-sm">Facebook Ad</span>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(copies.facebook, "facebook")}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {copiedField === "facebook" ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+              <p className="text-sm p-3 bg-muted/30 rounded-lg">{copies.facebook}</p>
+            </div>
+
+            {/* TikTok */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={16} className="text-black dark:text-white" />
+                  <span className="font-semibold text-sm">TikTok Hook</span>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(copies.tiktok, "tiktok")}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {copiedField === "tiktok" ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+              <p className="text-sm p-3 bg-muted/30 rounded-lg">{copies.tiktok}</p>
+            </div>
+
+            {/* Instagram */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Instagram size={16} className="text-pink-500" />
+                  <span className="font-semibold text-sm">Instagram Caption</span>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(copies.instagram, "instagram")}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {copiedField === "instagram" ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+              <p className="text-sm p-3 bg-muted/30 rounded-lg">{copies.instagram}</p>
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail size={16} className="text-yellow-500" />
+                  <span className="font-semibold text-sm">Email Subject</span>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(copies.email, "email")}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {copiedField === "email" ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+              <p className="text-sm p-3 bg-muted/30 rounded-lg">{copies.email}</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Benefits */}
       <div className="glass-card p-5">
