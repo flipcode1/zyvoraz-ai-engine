@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0.szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU";
-
-async function getAuthToken() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.access_token;
-}
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
@@ -28,13 +20,17 @@ export default function AdminProducts() {
 
   async function fetchProducts() {
     try {
-      const token = await getAuthToken();
+      setLoading(true);
+      console.log("Fetching products...");
+
       const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=id.desc`, {
         headers: {
           apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
       });
+
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
         console.error("HTTP error:", response.status);
@@ -43,6 +39,7 @@ export default function AdminProducts() {
       }
 
       const data = await response.json();
+      console.log("Data received:", data);
 
       if (Array.isArray(data)) {
         setProducts(data);
@@ -53,18 +50,13 @@ export default function AdminProducts() {
     } catch (err) {
       console.error("Error fetching products:", err);
       setProducts([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    const token = await getAuthToken();
-    if (!token) {
-      alert("You need to be logged in to add products");
-      return;
-    }
 
     const productData = {
       title: form.title,
@@ -83,7 +75,7 @@ export default function AdminProducts() {
           method: "PATCH",
           headers: {
             apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(productData),
@@ -94,7 +86,7 @@ export default function AdminProducts() {
           method: "POST",
           headers: {
             apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(productData),
@@ -105,7 +97,7 @@ export default function AdminProducts() {
       if (!response?.ok) {
         const error = await response?.text();
         console.error("Error response:", error);
-        alert("Error saving product. Please check if you are logged in.");
+        alert("Error saving product.");
       }
     } catch (err) {
       console.error("Error:", err);
@@ -134,18 +126,12 @@ export default function AdminProducts() {
   async function deleteProduct(id: string) {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
-    const token = await getAuthToken();
-    if (!token) {
-      alert("You need to be logged in to delete products");
-      return;
-    }
-
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}`, {
         method: "DELETE",
         headers: {
           apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
       });
 
