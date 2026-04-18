@@ -18,7 +18,15 @@ const SUPABASE_URL = "https://ydelgeezinawimqpgufk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZWxnZWV6aW5hd2ltcXBndWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODk3MDgsImV4cCI6MjA5MTg2NTcwOH0.szCuCMbWdrLoo_lflio3L0WhKXYM_UCGAXnBqLIzQlU";
 
-const ProductCard = ({ product, onClick }: { product: Product; onClick: () => void }) => {
+const ProductCard = ({
+  product,
+  onClick,
+  onFavoriteRemoved,
+}: {
+  product: Product;
+  onClick: () => void;
+  onFavoriteRemoved?: () => void;
+}) => {
   const trend = TREND_CONFIG[product.trendLevel as keyof typeof TREND_CONFIG] ?? {
     label: product.trendLevel,
     className: "bg-muted text-muted-foreground",
@@ -105,6 +113,10 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
           },
         });
         setIsFavorite(false);
+        // 👈 CHAMA O CALLBACK QUANDO REMOVE FAVORITO
+        if (onFavoriteRemoved) {
+          onFavoriteRemoved();
+        }
       } else {
         await fetch(`${SUPABASE_URL}/rest/v1/user_favorites`, {
           method: "POST",
@@ -141,7 +153,6 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
 
     try {
       if (isInCart) {
-        // Se já está no carrinho, remove
         await fetch(`${SUPABASE_URL}/rest/v1/user_cart?user_id=eq.${user.id}&product_id=eq.${product.id}`, {
           method: "DELETE",
           headers: {
@@ -150,9 +161,7 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
           },
         });
         setIsInCart(false);
-        alert("Produto removido do carrinho!");
       } else {
-        // Adiciona ao carrinho
         await fetch(`${SUPABASE_URL}/rest/v1/user_cart`, {
           method: "POST",
           headers: {
@@ -167,11 +176,9 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
           }),
         });
         setIsInCart(true);
-        alert("Produto adicionado ao carrinho!");
       }
     } catch (err) {
       console.error("Erro ao adicionar ao carrinho:", err);
-      alert("Erro ao adicionar ao carrinho. Tente novamente.");
     } finally {
       setCartLoading(false);
     }
